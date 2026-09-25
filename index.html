@@ -113,7 +113,7 @@
     box-shadow:0 4px 14px rgba(0,0,0,.5);
   }
   #badge{
-    position:absolute;right:14px;bottom:12px;font-size:11.5px;color:#9fb0c6;
+    position:absolute;right:14px;bottom:62px;font-size:11.5px;color:#9fb0c6;
     background:#0d1219cc;border:1px solid #26303f;border-radius:8px;padding:7px 10px;
     line-height:1.6;backdrop-filter:blur(4px);pointer-events:none;text-align:right;
     max-width:340px;
@@ -129,6 +129,16 @@
   }
   #revPrompt b{color:var(--acc2)}
   #revPrompt .step{color:var(--dim);font-size:11px}
+
+  #undoredo{position:absolute;right:14px;bottom:12px;display:flex;gap:7px;z-index:7}
+  #undoredo button{
+    width:42px;height:42px;border-radius:10px;background:#0d1219e8;border:1px solid #2a3342;
+    color:#e6edf6;font-size:20px;line-height:1;cursor:pointer;font-family:inherit;
+    display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);transition:.13s;
+  }
+  #undoredo button:hover:enabled{background:#1b2432;border-color:#3b4b63}
+  #undoredo button:active:enabled{transform:translateY(1px)}
+  #undoredo button:disabled{opacity:.32;cursor:default}
 
   /* блок обоснования построения */
   #explain{
@@ -384,6 +394,10 @@
       <kbd>клик по вершине</kbd> выбрать &nbsp; <kbd>двойной клик</kbd> переименовать &nbsp; <kbd>Delete</kbd> удалить
     </div>
     <div id="badge"></div>
+    <div id="undoredo">
+      <button id="btnUndo" title="Отменить действие" disabled>←</button>
+      <button id="btnRedo" title="Вернуть действие" disabled>→</button>
+    </div>
   </main>
 </div>
 
@@ -1999,6 +2013,7 @@ function draw(){
   drawPoints();
   drawHover();
   updateBadge();
+  scheduleHistory();
 }
 function updateBadge(){
   const b=document.getElementById('badge');
@@ -2649,6 +2664,11 @@ document.getElementById('explToggle').addEventListener('click',()=>{
 window.addEventListener('keydown',e=>{
   const tg=(e.target&&e.target.tagName)||'';
   if(/INPUT|SELECT|TEXTAREA/.test(tg)) return;
+  if((e.metaKey||e.ctrlKey) && (e.key==='z'||e.key==='Z'||e.key==='я'||e.key==='Я')){
+    e.preventDefault();
+    if(e.shiftKey) redo(); else undo();
+    return;
+  }
   if(e.key==='Escape'){
     if(state.revWizard){ cancelRevWizard(); updateSelInfo(); draw(); return; }
     state.selection=[]; state.selObj=null; updateSelInfo(); draw();
@@ -2702,6 +2722,76 @@ function renderObjList(){
   if(!el.children.length) el.innerHTML='<div style="color:#8ea0b8;font-size:11.5px;padding:4px">Пусто. Загрузите фигуру.</div>';
   renderExplain();
 }
+
+/* ============================ ИСТОРИЯ (отмена / возврат) ============================ */
+let history=[], hIdx=-1, histTimer=0;
+const HIST_MAX=60;
+function snapshotStr(){
+  const data={
+    uidN, kv,
+    points: state.points.map(p=>({...p})),
+    solids: state.solids.map(s=>({...s})),
+    segments: state.segments.map(o=>({...o})),
+    lines: state.lines.map(o=>({...o})),
+    planes: state.planes.map(o=>({...o})),
+    sections: state.sections.map(o=>({...o})),
+    build: state.build, dyn: state.dyn,
+    baseXY: state.baseXY,
+    problemGiven: state.problemGiven ? [...state.problemGiven] : null
+  };
+  return JSON.stringify(data);
+}
+function updateHistoryUI(){
+  const u=document.getElementById('btnUndo'), r=document.getElementById('btnRedo');
+  if(u) u.disabled = hIdx<=0;
+  if(r) r.disabled = hIdx>=history.length-1;
+}
+function pushHistory(){
+  if(!state) return;
+  const str=snapshotStr();
+  if(history.length && history[hIdx]===str) return;
+  history=history.slice(0, hIdx+1);
+  history.push(str);
+  if(history.length>HIST_MAX){ history.shift(); }
+  hIdx=history.length-1;
+  updateHistoryUI();
+}
+function scheduleHistory(){
+  clearTimeout(histTimer);
+  histTimer=setTimeout(pushHistory, 350);
+}
+function restoreSnapshot(str){
+  const d=JSON.parse(str);
+  uidN=d.uidN; kv=d.kv;
+  state.points=d.points||[]; state.solids=d.solids||[];
+  state.segments=d.segments||[]; state.lines=d.lines||[];
+  state.planes=d.planes||[]; state.sections=d.sections||[];
+  state.build=d.build||null; state.dyn=d.dyn||null;
+  state.baseXY=d.baseXY||null;
+  state.problemGiven = d.problemGiven ? new Set(d.problemGiven) : null;
+  state.selection=[]; state.selObj=null; state.revWizard=null;
+  rebuildIndex();
+  state.solids.forEach(s=>computeSolidGeometry(s));
+  if(state.build){
+    const sec=state.sections.find(x=>x.id===state.build.secId);
+    const sol=state.solids.find(x=>x.id===state.build.solidId);
+    state.build = (sec&&sol) ? computeBuild(sec,sol) : null;
+  }
+  updateDynUI(); updateStepUI(); updateRevWizardUI();
+  renderObjList(); updateSelInfo();
+  draw();
+}
+function undo(){
+  clearTimeout(histTimer);
+  pushHistory();
+  if(hIdx>0){ hIdx--; restoreSnapshot(history[hIdx]); updateHistoryUI(); }
+}
+function redo(){
+  clearTimeout(histTimer);
+  if(hIdx<history.length-1){ hIdx++; restoreSnapshot(history[hIdx]); updateHistoryUI(); }
+}
+document.getElementById('btnUndo').addEventListener('click',()=>{ undo(); });
+document.getElementById('btnRedo').addEventListener('click',()=>{ redo(); });
 
 /* ============================ ЗАДАНИЯ ============================ */
 const TASKS = [
