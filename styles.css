@@ -168,7 +168,7 @@
   #explain .res b{color:#9fd0ff}
 
   #panelToggle{
-    display:none;position:absolute;left:10px;top:10px;z-index:8;
+    display:none;position:absolute;left:10px;top:10px;z-index:13;
     width:44px;height:44px;border-radius:11px;background:#0d1219e8;border:1px solid #2a3342;
     color:#e6edf6;font-size:18px;line-height:1;cursor:pointer;font-family:inherit;
     align-items:center;justify-content:center;backdrop-filter:blur(4px);
@@ -176,17 +176,48 @@
   #panelToggle:hover{background:#1b2432}
   #panelToggle:active{transform:translateY(1px)}
 
+  /* нижняя панель инструментов (только компактный режим) */
+  #toolbar{display:none}
+  .tbtn{
+    flex:0 0 auto;min-width:62px;height:46px;border-radius:10px;background:#1b2432;
+    border:1px solid #2f3d52;color:#c9d6e8;font-size:11px;line-height:1.1;cursor:pointer;
+    font-family:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .tbtn .ic{font-size:16px;line-height:1}
+  .tbtn.on{background:#1d4f86;border-color:#4a90d9;color:#fff}
+  .tbtn:active{transform:translateY(1px)}
+
   @media(max-width:820px){
     #app{flex-direction:column;position:relative}
-    #panel{width:100%;min-width:0;height:50%;border-right:none;border-bottom:1px solid var(--line);
-      transition:height .22s ease, padding .22s ease}
-    #stage{height:50%;transition:height .22s ease}
+    #stage{height:100%}
+    /* панель — выезжающий снизу лист поверх сцены */
+    #panel{
+      position:absolute;left:0;right:0;bottom:0;top:auto;width:100%;min-width:0;
+      height:auto;max-height:80%;padding:16px 14px calc(72px + env(safe-area-inset-bottom));
+      border:none;border-top:1px solid var(--line);border-radius:16px 16px 0 0;
+      box-shadow:0 -14px 34px rgba(0,0,0,.55);z-index:12;
+      transform:translateY(102%);transition:transform .25s ease;overflow-y:auto;pointer-events:none;
+    }
+    #app.panel-open #panel{transform:translateY(0);pointer-events:auto}
+    #panel::before{
+      content:'';position:sticky;top:-4px;display:block;width:44px;height:4px;border-radius:3px;
+      background:#39465a;margin:-6px auto 8px;
+    }
     #panelToggle{display:flex}
-    #app.panel-hidden #panel{height:0;min-height:0;padding-top:0;padding-bottom:0;border:none;overflow:hidden}
-    #app.panel-hidden #stage{height:100%}
-    #explain{left:8px;right:8px;width:auto;max-width:none;top:64px;max-height:40%}
+    #toolbar{
+      display:flex;position:absolute;left:0;right:0;bottom:0;z-index:8;gap:6px;
+      padding:7px 8px calc(7px + env(safe-area-inset-bottom));
+      background:linear-gradient(transparent,#0b0e13f2 34%);backdrop-filter:blur(6px);
+      border-top:1px solid #232c3a;overflow-x:auto;-webkit-overflow-scrolling:touch;
+    }
+    #toolbar::-webkit-scrollbar{height:0}
+    #explain{left:auto;right:8px;width:auto;max-width:64%;top:60px;max-height:36%}
     #explain .eh b{font-size:11px}
-    #badge{max-width:46%;font-size:10.5px}
+    #hud{display:none}
+    #undoredo{bottom:70px;right:12px;gap:6px}
+    #undoredo button{width:44px;height:44px}
+    #badge{right:12px;bottom:122px;max-width:52%;font-size:10.5px}
     .tool{padding:11px 6px;font-size:12px}
     .btn{padding:10px 10px;font-size:13px}
     .btn.sm{padding:9px 8px;font-size:12.5px}
@@ -196,15 +227,9 @@
     .task h3{font-size:13px}
     .task p{font-size:12px}
     .stat,.hint,.selinfo{font-size:12px}
-    #hud{font-size:10.5px;max-width:52%}
   }
   @media(max-width:560px){
-    #panel{height:55%}
-    #stage{height:45%}
-    #app.panel-hidden #panel{height:0}
-    #app.panel-hidden #stage{height:100%}
-    #hud{display:none}
-    #explain{max-height:44%}
+    #explain{max-width:72%;max-height:34%}
+    .tbtn{min-width:56px;height:44px;font-size:10.5px}
     .tools{gap:6px}
-    .tool{padding:10px 4px;font-size:11.5px}
   }

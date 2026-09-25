@@ -268,14 +268,19 @@ function renderObjList(){
 
 
 /* ---------- адаптивный интерфейс (телефон / планшет) ---------- */
+const TOOLSHORT={select:'Выбор',point:'Точка',segment:'Отрезок',line:'Прямая',plane:'Плоскость',section:'Сечение'};
 function compactUI(){
   return !!(window.matchMedia && window.matchMedia('(max-width:820px)').matches);
 }
-function setPanelHidden(v){
+function panelIsOpen(){
   const app=document.getElementById('app');
-  if(app) app.classList.toggle('panel-hidden', !!v);
+  return !!(app && app.classList.contains('panel-open'));
+}
+function setPanelOpen(v){
+  const app=document.getElementById('app');
+  if(app) app.classList.toggle('panel-open', !!v);
   const b=document.getElementById('panelToggle');
-  if(b) b.textContent = v ? '☰' : '⌄';
+  if(b) b.textContent = v ? '✕' : '☰';
 }
 function initCollapsibleCards(){
   const cards=[...document.querySelectorAll('#panel .card')];
@@ -288,12 +293,24 @@ function initCollapsibleCards(){
     cards.forEach(c=>{ if(!c.hasAttribute('data-primary')) c.classList.add('collapsed'); });
   }
 }
+function buildToolbar(){
+  const bar=document.getElementById('toolbar');
+  if(!bar) return;
+  bar.innerHTML='';
+  document.querySelectorAll('.tool').forEach(t=>{
+    const tool=t.dataset.tool;
+    const ic=t.querySelector('.ic');
+    const b=document.createElement('button');
+    b.type='button'; b.className='tbtn'+(tool===state.tool?' on':''); b.dataset.tool=tool;
+    b.innerHTML='<span class="ic">'+(ic?ic.textContent:'')+'</span><span>'+(TOOLSHORT[tool]||tool)+'</span>';
+    b.addEventListener('click',()=>{ if(typeof handleToolTap==='function') handleToolTap(tool); });
+    bar.appendChild(b);
+  });
+}
 function initAdaptiveUI(){
   initCollapsibleCards();
+  buildToolbar();
   const b=document.getElementById('panelToggle');
-  if(b) b.addEventListener('click',()=>{
-    const app=document.getElementById('app');
-    setPanelHidden(!(app && app.classList.contains('panel-hidden')));
-  });
-  if(compactUI()) setPanelHidden(false);
+  if(b) b.addEventListener('click',()=>setPanelOpen(!panelIsOpen()));
+  if(compactUI()) setPanelOpen(true);
 }

@@ -215,12 +215,13 @@ function tryBuild(){
   if(ok){ state.selection=[]; renderObjList(); updateSelInfo(); }
   return ok;
 }
+function handleToolTap(tool){
+  setTool(tool);
+  tryBuild();
+  updateSelInfo(); draw();
+}
 document.querySelectorAll('.tool').forEach(t=>{
-  t.addEventListener('click',()=>{
-    setTool(t.dataset.tool);
-    tryBuild();
-    updateSelInfo(); draw();
-  });
+  t.addEventListener('click',()=>handleToolTap(t.dataset.tool));
 });
 function setTool(t){
   state.tool=t;
@@ -229,6 +230,7 @@ function setTool(t){
     if(state.revWizard) cancelRevWizard();
   }
   document.querySelectorAll('.tool').forEach(x=>x.classList.toggle('on',x.dataset.tool===t));
-  if(typeof compactUI==='function' && compactUI()) setPanelHidden(true);
+  document.querySelectorAll('#toolbar .tbtn').forEach(x=>x.classList.toggle('on',x.dataset.tool===t));
+  if(typeof setPanelOpen==='function' && typeof compactUI==='function' && compactUI()) setPanelOpen(false);
 }
 
