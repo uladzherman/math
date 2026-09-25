@@ -335,10 +335,41 @@ function buildToolbar(){
     bar.appendChild(b);
   });
 }
+function buildRail(){
+  const rail=document.getElementById('rail');
+  if(!rail) return;
+  if(compactUI()){ rail.innerHTML=''; return; }
+  rail.innerHTML='';
+  document.querySelectorAll('#panel .card').forEach(card=>{
+    const h=card.querySelector('h2');
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='rbtn';
+    btn.title=h?h.textContent.trim():'';
+    btn.textContent=card.getAttribute('data-icon')||'▪';
+    btn.addEventListener('click',()=>openCard(card));
+    rail.appendChild(btn);
+  });
+}
+function openCard(card){
+  if(!card) return;
+  card.classList.remove('collapsed');
+  const app=document.getElementById('app');
+  if(compactUI()) setPanelOpen(true);
+  else if(app) app.classList.remove('rail-mode');
+  if(card.scrollIntoView) card.scrollIntoView({block:'start'});
+  updateStepUI(); draw();
+}
+function togglePanel(){
+  if(compactUI()){ setPanelOpen(!panelIsOpen()); return; }
+  const app=document.getElementById('app');
+  if(app) app.classList.toggle('rail-mode');
+}
 function initAdaptiveUI(){
   initCollapsibleCards();
   buildToolbar();
+  buildRail();
   const b=document.getElementById('panelToggle');
-  if(b) b.addEventListener('click',()=>setPanelOpen(!panelIsOpen()));
+  if(b) b.addEventListener('click',()=>togglePanel());
   if(compactUI()) setPanelOpen(true);
 }

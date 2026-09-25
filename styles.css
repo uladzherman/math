@@ -168,13 +168,30 @@
   #explain .res b{color:#9fd0ff}
 
   #panelToggle{
-    display:none;position:absolute;left:10px;top:10px;z-index:13;
+    display:flex;position:absolute;left:10px;top:10px;z-index:13;
     width:44px;height:44px;border-radius:11px;background:#0d1219e8;border:1px solid #2a3342;
     color:#e6edf6;font-size:18px;line-height:1;cursor:pointer;font-family:inherit;
     align-items:center;justify-content:center;backdrop-filter:blur(4px);
   }
   #panelToggle:hover{background:#1b2432}
   #panelToggle:active{transform:translateY(1px)}
+
+  /* вертикальный рельс иконок вместо панели */
+  #rail{
+    display:none;position:absolute;left:10px;top:64px;z-index:7;
+    flex-direction:column;gap:7px;max-height:calc(100% - 76px);overflow-y:auto;
+  }
+  #rail::-webkit-scrollbar{width:0}
+  #app.rail-mode #panel{display:none}
+  #app.rail-mode #rail{display:flex}
+  .rbtn{
+    width:44px;height:44px;border-radius:11px;background:#0d1219e8;border:1px solid #2a3342;
+    color:#c9d6e8;font-size:17px;line-height:1;cursor:pointer;font-family:inherit;
+    display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);transition:.13s;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .rbtn:hover{background:#1b2432;border-color:#3b4b63;color:#fff}
+  .rbtn:active{transform:translateY(1px)}
 
   /* нижняя панель инструментов (только компактный режим) */
   #toolbar{display:none}
@@ -205,6 +222,8 @@
       background:#39465a;margin:-6px auto 8px;
     }
     #panelToggle{display:flex}
+    #app.rail-mode #rail{display:none}
+    #app.rail-mode #panel{display:block}
     #toolbar{
       display:flex;position:absolute;left:0;right:0;bottom:0;z-index:8;gap:6px;
       padding:7px 8px calc(7px + env(safe-area-inset-bottom));

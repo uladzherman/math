@@ -13,7 +13,7 @@
     <div class="sub">Построение фигур, прямых, плоскостей и сечений многогранников. Вращайте сцену мышью, выбирайте вершины кликом и строите.</div>
 
     <!-- Фигура -->
-    <div class="card" data-primary>
+    <div class="card" data-primary data-icon="▣">
       <h2>Фигура</h2>
       <label class="lbl">Многогранник / тело</label>
       <select id="shapeSel"></select>
@@ -76,7 +76,7 @@
     </div>
 
     <!-- Задача текстом -->
-    <div class="card">
+    <div class="card" data-icon="✎">
       <h2>Задача текстом</h2>
       <textarea id="taskText" placeholder="Вставьте условие задачи, например: Дана треугольная пирамида DABC. Точка T лежит на ребре DB, а точка E — на продолжении ребра DC. Постройте: а) точку пересечения прямой TE и плоскости ABC; б) прямую, по которой пересекаются плоскости ATE и ABC."></textarea>
       <div class="grid2" style="margin-top:7px">
@@ -87,7 +87,7 @@
     </div>
 
     <!-- Отображение -->
-    <div class="card">
+    <div class="card" data-icon="◐">
       <h2>Отображение</h2>
       <label class="lbl" style="display:flex;align-items:center;gap:7px;cursor:pointer;margin-bottom:5px">
         <input type="checkbox" id="chkAxes" checked style="width:auto"> оси координат (x, y, z)
@@ -108,7 +108,7 @@
     </div>
 
     <!-- Инструменты -->
-    <div class="card" data-primary>
+    <div class="card" data-primary data-icon="✥">
       <h2>Инструменты построения</h2>
       <div class="tools">
         <div class="tool on" data-tool="select"><span class="ic">✥</span>Выбор / вращение</div>
@@ -134,7 +134,7 @@
     </div>
 
     <!-- Добавить точку -->
-    <div class="card">
+    <div class="card" data-icon="•">
       <h2>Точка по координатам</h2>
       <label class="lbl">Куда ставить точку кликом: высота z = <b id="ptHVal">0</b></label>
       <input type="range" id="ptH" min="-4" max="4" step="0.25" value="0">
@@ -151,7 +151,7 @@
     </div>
 
     <!-- Сечение -->
-    <div class="card">
+    <div class="card" data-icon="⬟">
       <h2>Сечение</h2>
       <div class="stat"><span>Сторон</span><b id="stN">—</b></div>
       <div class="stat"><span>Периметр</span><b id="stP">—</b></div>
@@ -182,13 +182,13 @@
     </div>
 
     <!-- Объекты -->
-    <div class="card">
+    <div class="card" data-icon="≣">
       <h2>Объекты на сцене</h2>
       <div class="objlist" id="objList"></div>
     </div>
 
     <!-- Задания -->
-    <div class="card">
+    <div class="card" data-icon="✓">
       <h2>Задания тренажёра</h2>
       <div id="taskList"></div>
     </div>
@@ -198,6 +198,7 @@
     <canvas id="cv"></canvas>
     <button id="panelToggle" title="Показать / скрыть панель инструментов">☰</button>
     <div id="toolbar"></div>
+    <div id="rail"></div>
     <div id="revPrompt"></div>
     <div id="explain" class="collapsed">
       <div class="eh">
