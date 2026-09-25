@@ -371,5 +371,7 @@ function initAdaptiveUI(){
   buildRail();
   const b=document.getElementById('panelToggle');
   if(b) b.addEventListener('click',()=>togglePanel());
+  const c=document.getElementById('panelCollapse');
+  if(c) c.addEventListener('click',()=>togglePanel());
   if(compactUI()) setPanelOpen(true);
 }

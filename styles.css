@@ -21,6 +21,15 @@
   #panel::-webkit-scrollbar{width:9px}
   #panel::-webkit-scrollbar-thumb{background:#2c3646;border-radius:6px}
   h1{font-size:17px;font-weight:700;letter-spacing:.2px}
+  .phead{display:flex;align-items:center;gap:8px}
+  .phead h1{flex:1;min-width:0}
+  #panelCollapse{
+    flex:0 0 auto;background:#20293a;border:1px solid #2f3d52;color:#c9d6e8;border-radius:8px;
+    padding:7px 10px;font-size:11.5px;cursor:pointer;font-family:inherit;white-space:nowrap;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #panelCollapse:hover{background:#28344a;color:#fff}
+  #panelCollapse:active{transform:translateY(1px)}
   h1 span{color:var(--acc)}
   .sub{color:var(--dim);font-size:11.5px;margin:3px 0 14px;line-height:1.45}
   .card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 11px 12px;margin-bottom:11px}
