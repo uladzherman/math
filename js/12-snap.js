@@ -53,11 +53,33 @@ function pickOnUserLine(sx,sy,q0,d){
   }
   return best;
 }
+function closestOnLineToRay(origin, dir, o, d){
+  const w0=V.sub(origin,o);
+  const b=V.dot(dir,d);
+  const den=1-b*b;
+  if(den<1e-6) return null;
+  const s=(b*V.dot(d,w0)-V.dot(dir,w0))/den;
+  return V.add(origin,V.mul(dir,s));
+}
+const AXES_DIRS=[[1,0,0],[0,1,0],[0,0,1]];
+function pickOnAxis(sx,sy,o,d){
+  let best=null, bestD=11;
+  const lim=sceneRadius()*2.5;
+  for(const e of AXES_DIRS){
+    const q=closestOnLineToRay([0,0,0], e, o, d);
+    if(!q || V.len(q)>lim) continue;
+    const sp=project(q);
+    const dd=Math.hypot(sp.x-sx,sp.y-sy);
+    if(dd<bestD){ bestD=dd; best={p:q, kind:'axis'}; }
+  }
+  return best;
+}
 function computeSnap(sx,sy){
   const q0 = rayOrigin(sx,sy);
   const d = V.mul(cam.dir,-1);
   const onLine = pickOnUserLine(sx,sy,q0,d);
   if(onLine) return onLine;
+  const onAxis = pickOnAxis(sx,sy,q0,d);
   let best=null;
   for(const s of state.solids){
     if(!s.show) continue;
@@ -69,7 +91,7 @@ function computeSnap(sx,sy){
       if(!best || t<best.t) best={t,p:V.add(q0,V.mul(d,t)),solid:s,poly};
     });
   }
-  if(!best) return null;
+  if(!best) return onAxis;
   if(best.solid.smooth) return {p:best.p, kind:'face'};
   const s=best.solid, pts=coordsOf(s);
   const fcs=project(centroid(best.poly));

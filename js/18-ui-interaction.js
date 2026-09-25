@@ -125,7 +125,7 @@ function handleClick(e){
     if(state.revWizard){ state.hoverPt=null; revWizardUsePoint(np.id); return; }
     state.selection=[np.id]; state.selObj=null; state.hoverPt=null;
     flash(snap ? ('Точка на '+(snap.kind==='edge'?'ребре':snap.kind==='mid'?'середине ребра':snap.kind==='center'?'центре грани':
-                    snap.kind==='line'?'прямой':snap.kind==='segment'?'отрезке':'грани'))
+                    snap.kind==='axis'?'оси координат':snap.kind==='line'?'прямой':snap.kind==='segment'?'отрезке':'грани'))
                : ('Свободная точка при z = '+(+state.pointZ.toFixed(2))));
     renderObjList(); updateSelInfo(); draw();
     return;

@@ -181,7 +181,7 @@ function updateBadge(){
   }
   b.innerHTML=html + (flashMsg?('<div class="fl">'+flashMsg+'</div>'):'');
   if(state.tool==='point' && state.hoverPt){
-    const names={vertex:'вершина',edge:'ребро',mid:'середина ребра',center:'центр грани',face:'грань',line:'прямая',segment:'отрезок'};
+    const names={vertex:'вершина',edge:'ребро',mid:'середина ребра',center:'центр грани',face:'грань',axis:'ось координат',line:'прямая',segment:'отрезок'};
     b.innerHTML += '<div class="fl" style="color:'+snapColor(state.hoverPt.kind)+'">Привязка: '+(names[state.hoverPt.kind]||'точка')+'</div>';
   }
 }

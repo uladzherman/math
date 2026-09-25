@@ -4,6 +4,7 @@
 function snapColor(kind){
   if(kind==='edge'||kind==='mid') return '#ffb86b';
   if(kind==='center') return '#c792ea';
+  if(kind==='axis') return '#5aa9ff';
   if(kind==='face') return '#7ee787';
   if(kind==='line') return '#f59e0b';
   if(kind==='segment') return '#4ade80';
