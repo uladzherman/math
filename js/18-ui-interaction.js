@@ -230,7 +230,7 @@ function setTool(t){
     if(state.revWizard) cancelRevWizard();
   }
   document.querySelectorAll('.tool').forEach(x=>x.classList.toggle('on',x.dataset.tool===t));
-  document.querySelectorAll('#toolbar .tbtn').forEach(x=>x.classList.toggle('on',x.dataset.tool===t));
+  document.querySelectorAll('#toolPalette .tk').forEach(x=>x.classList.toggle('on',x.dataset.tool===t));
   if(typeof setPanelOpen==='function' && typeof compactUI==='function' && compactUI()) setPanelOpen(false);
 }
 

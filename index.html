@@ -200,7 +200,6 @@
   <main id="stage">
     <canvas id="cv"></canvas>
     <button id="panelToggle" title="Показать / скрыть панель инструментов">☰</button>
-    <div id="toolbar"></div>
     <div id="rail"></div>
     <div id="revPrompt"></div>
     <div id="explain" class="collapsed">
@@ -210,9 +209,12 @@
       </div>
       <div class="eb" id="explBody"></div>
     </div>
-    <div id="hud">
-      <kbd>ЛКМ</kbd> вращение &nbsp; <kbd>колесо</kbd> масштаб &nbsp; <kbd>Shift</kbd>+<kbd>ЛКМ</kbd> панорама<br>
-      <kbd>клик по вершине</kbd> выбрать &nbsp; <kbd>двойной клик</kbd> переименовать &nbsp; <kbd>Delete</kbd> удалить
+    <div id="bottomLeft">
+      <div id="toolPalette"></div>
+      <div id="hud">
+        <kbd>ЛКМ</kbd> вращение &nbsp; <kbd>колесо</kbd> масштаб &nbsp; <kbd>Shift</kbd>+<kbd>ЛКМ</kbd> панорама<br>
+        <kbd>клик по вершине</kbd> выбрать &nbsp; <kbd>двойной клик</kbd> переименовать &nbsp; <kbd>Delete</kbd> удалить
+      </div>
     </div>
     <div id="badge"></div>
     <div id="undoredo">

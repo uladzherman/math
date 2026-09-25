@@ -322,14 +322,15 @@ function initCollapsibleCards(){
   }
 }
 function buildToolbar(){
-  const bar=document.getElementById('toolbar');
+  const bar=document.getElementById('toolPalette');
   if(!bar) return;
   bar.innerHTML='';
   document.querySelectorAll('.tool').forEach(t=>{
     const tool=t.dataset.tool;
     const ic=t.querySelector('.ic');
     const b=document.createElement('button');
-    b.type='button'; b.className='tbtn'+(tool===state.tool?' on':''); b.dataset.tool=tool;
+    b.type='button'; b.className='tk'+(tool===state.tool?' on':''); b.dataset.tool=tool;
+    b.title=t.textContent.trim();
     b.innerHTML='<span class="ic">'+(ic?ic.textContent:'')+'</span><span>'+(TOOLSHORT[tool]||tool)+'</span>';
     b.addEventListener('click',()=>{ if(typeof handleToolTap==='function') handleToolTap(tool); });
     bar.appendChild(b);
