@@ -211,6 +211,24 @@
       </div>
     </div>
 
+    <!-- Тела вращения по центру и точке -->
+    <div class="card">
+      <h2>Тело вращения по центру и точке</h2>
+      <label class="lbl">Определение (как в GeoGebra)</label>
+      <select id="revKind">
+        <option value="sphere">Сфера · Sphere(A, B): A — центр, B — на поверхности</option>
+        <option value="cylinder">Цилиндр · Cylinder(A, B, r): A, B — центры оснований</option>
+        <option value="cone">Конус · Cone(A, B, r): A — центр основания, B — вершина</option>
+      </select>
+      <div id="revRadiusRow" style="display:none;margin-top:8px">
+        <label class="lbl">Радиус r</label>
+        <input type="number" id="revRadius" value="1" step="0.25" min="0.05">
+      </div>
+      <div class="selinfo" id="revInfo" style="margin-top:8px">Выберите две точки на сцене: A — первая выбранная, B — вторая.</div>
+      <button class="btn pri" id="btnRev" style="margin-top:8px">Построить тело по точкам A и B</button>
+      <div class="hint">Как команды GeoGebra: <b>Sphere(A, B)</b> — центр A через точку B; <b>Cylinder(A, B, r)</b> — A и B центры оснований (ось AB); <b>Cone(A, B, r)</b> — A центр основания, B вершина. Сначала поставьте две точки (инструмент «Точка» или карточка «Точка по координатам»), затем инструментом «Выбор» кликните их по очереди и нажмите кнопку. Тело строится вдоль оси AB в любом направлении.</div>
+    </div>
+
     <!-- Задача текстом -->
     <div class="card">
       <h2>Задача текстом</h2>
@@ -2015,6 +2033,117 @@ function adjustScale(){
   cam.scale = Math.min(cw,ch)/(R*2.9);
 }
 
+/* ---------- тела вращения по двум точкам (как в GeoGebra) ---------- */
+function axisFrame(A,B){
+  const w=V.norm(V.sub(B,A));
+  const ref=Math.abs(w[2])>0.9?[1,0,0]:[0,0,1];
+  const u=V.norm(V.cross(ref,w));
+  const v=V.norm(V.cross(w,u));
+  return {w,u,v};
+}
+const revRadial=(u,v,ang)=>V.add(V.mul(u,Math.cos(ang)),V.mul(v,Math.sin(ang)));
+function revSphere(A,R){
+  const n=36,m=12, verts=[], idx=[];
+  verts.push({p:[A[0],A[1],A[2]+R],label:''});
+  for(let j=1;j<m;j++){
+    const phi=j*Math.PI/m, row=[];
+    for(let i=0;i<n;i++){
+      const th=i*2*Math.PI/n;
+      verts.push({p:[A[0]+R*Math.sin(phi)*Math.cos(th),A[1]+R*Math.sin(phi)*Math.sin(th),A[2]+R*Math.cos(phi)],label:''});
+      row.push(verts.length-1);
+    }
+    idx.push(row);
+  }
+  verts.push({p:[A[0],A[1],A[2]-R],label:''});
+  const bot=verts.length-1, faces=[];
+  for(let i=0;i<n;i++){const j=(i+1)%n; faces.push([0,idx[0][j],idx[0][i]]);}
+  for(let j=0;j<idx.length-1;j++)for(let i=0;i<n;i++){const k=(i+1)%n; faces.push([idx[j][i],idx[j][k],idx[j+1][k],idx[j+1][i]]);}
+  const last=idx[idx.length-1];
+  for(let i=0;i<n;i++){const j=(i+1)%n; faces.push([bot,last[i],last[j]]);}
+  const curves=[];
+  const nrmOf=i=>V.norm(V.sub(verts[i].p,A));
+  for(let j=0;j<idx.length;j+=2) curves.push({pts:idx[j].map(i=>verts[i].p), nrm:idx[j].map(nrmOf)});
+  for(let i=0;i<n;i+=3){ const col=[]; for(const row of idx) col.push(row[i]); curves.push({pts:col.map(i=>verts[i].p), nrm:col.map(nrmOf)}); }
+  return {verts,faces,curves};
+}
+function revCylinder(A,B,r){
+  const n=48, {u,v}=axisFrame(A,B), verts=[], bottom=[], top=[];
+  for(let i=0;i<n;i++){ const rad=revRadial(u,v,i*2*Math.PI/n); verts.push({p:V.add(A,V.mul(rad,r)),label:''}); }
+  for(let i=0;i<n;i++){ const rad=revRadial(u,v,i*2*Math.PI/n); verts.push({p:V.add(B,V.mul(rad,r)),label:''}); }
+  for(let i=0;i<n;i++){ bottom.push(i); top.push(n+i); }
+  const faces=[bottom.slice().reverse(),top];
+  for(let i=0;i<n;i++){ const j=(i+1)%n; faces.push([i,j,n+j,n+i]); }
+  const rn=i=>revRadial(u,v,i*2*Math.PI/n);
+  return {verts,faces,curves:[
+    {pts:bottom.map(i=>verts[i].p), nrm:bottom.map(i=>rn(i))},
+    {pts:top.map(i=>verts[i].p), nrm:top.map(i=>rn(i))}]};
+}
+function revCone(A,B,r){
+  const n=48, {w,u,v}=axisFrame(A,B), H=V.dist(A,B);
+  const verts=[{p:B.slice(),label:'S'}], ring=[];
+  for(let i=0;i<n;i++){ const rad=revRadial(u,v,i*2*Math.PI/n); verts.push({p:V.add(A,V.mul(rad,r)),label:''}); ring.push(i+1); }
+  const faces=[ring.slice().reverse()];
+  for(let i=0;i<n;i++){ const j=(i+1)%n; faces.push([0,ring[i],ring[j]]); }
+  const nrm=i=>{ const rad=revRadial(u,v,i*2*Math.PI/n); return V.norm(V.add(V.mul(rad,H),V.mul(w,r))); };
+  return {verts,faces,curves:[{pts:ring.map(i=>verts[i].p), nrm:ring.map((_,i)=>nrm(i))}]};
+}
+function buildRevolution(kind,idA,idB,r){
+  const A=P(idA).p, B=P(idB).p, la=liveLabel(idA), lb=liveLabel(idB);
+  if(V.dist(A,B)<1e-6){ flash('Точки A и B совпадают — тело не задано'); return null; }
+  let shape, name, desc;
+  if(kind==='sphere'){
+    const R=V.dist(A,B);
+    shape=revSphere(A,R);
+    name='Сфера ('+la+') через '+lb;
+    desc='Sphere('+la+', '+lb+'): центр '+la+' '+fmtV(A)+', точка '+lb+' на поверхности, r = |'+la+lb+'| = '+round(R,3).toFixed(3);
+  }else if(kind==='cylinder'){
+    const rr=+r||1;
+    shape=revCylinder(A,B,rr);
+    name='Цилиндр '+la+lb;
+    desc='Cylinder('+la+', '+lb+', '+rr+'): '+la+', '+lb+' — центры оснований, ось '+la+lb+', r = '+rr;
+  }else{
+    const rr=+r||1;
+    shape=revCone(A,B,rr);
+    name='Конус вершина '+lb+' ('+la+')';
+    desc='Cone('+la+', '+lb+', '+rr+'): '+la+' — центр основания, '+lb+' — вершина, r = '+rr;
+  }
+  const solid=createSolid(name,shape,solidColorNext(),{smooth:true,kind});
+  solid.anchor=[idA,idB];
+  resize(); adjustScale();
+  return {solid,desc};
+}
+const revKindSel=document.getElementById('revKind');
+const revRadiusRow=document.getElementById('revRadiusRow');
+function syncRevUI(){ revRadiusRow.style.display = revKindSel.value==='sphere'?'none':'block'; updateRevInfo(); }
+function updateRevInfo(){
+  const el=document.getElementById('revInfo');
+  if(!el) return;
+  const ids=state.selection.filter(id=>P(id));
+  if(ids.length!==2){
+    el.innerHTML='Выбрано точек: <b>'+ids.length+'</b> из <b>2</b>. A — первая выбранная, B — вторая.';
+    return;
+  }
+  const A=P(ids[0]), B=P(ids[1]), d=V.dist(A.p,B.p), kind=revKindSel.value;
+  let tail;
+  if(kind==='sphere') tail='радиус r = |'+liveLabel(ids[0])+liveLabel(ids[1])+'| = <b>'+round(d,3).toFixed(3)+'</b>';
+  else if(kind==='cylinder') tail='ось '+liveLabel(ids[0])+liveLabel(ids[1])+', высота = <b>'+round(d,3).toFixed(3)+'</b>, r = '+(document.getElementById('revRadius').value||'1');
+  else tail='высота = <b>'+round(d,3).toFixed(3)+'</b>, r = '+(document.getElementById('revRadius').value||'1');
+  el.innerHTML='A = <b>'+liveLabel(ids[0])+'</b> '+fmtV(A.p)+', B = <b>'+liveLabel(ids[1])+'</b> '+fmtV(B.p)+'; '+tail+'.';
+}
+revKindSel.addEventListener('change',syncRevUI);
+document.getElementById('revRadius').addEventListener('input',updateRevInfo);
+document.getElementById('btnRev').addEventListener('click',()=>{
+  const ids=state.selection.filter(id=>P(id));
+  if(ids.length!==2){ flash('Выберите ровно две точки: A и B'); return; }
+  const r=parseFloat(document.getElementById('revRadius').value);
+  const res=buildRevolution(revKindSel.value, ids[0], ids[1], r);
+  if(!res) return;
+  state.selection=[]; state.selObj={kind:'solid',id:res.solid.id};
+  renderObjList(); updateSelInfo(); draw();
+  flash(res.desc);
+});
+syncRevUI();
+
 let kv=1;
 function solidColorNext(){ return solidColor(kv++); }
 
@@ -2133,6 +2262,7 @@ function toggleSelect(id){
 function updateSelInfo(){
   const el=document.getElementById('selInfo');
   pruneSelection();
+  updateRevInfo();
   const row=document.getElementById('renameRow');
   const inp=document.getElementById('renameInp');
   const canRename = state.selection.length===1 && !!P(state.selection[0]);
