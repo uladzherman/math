@@ -156,6 +156,7 @@ function toggleSelect(id){
 function updateSelInfo(){
   const el=document.getElementById('selInfo');
   pruneSelection();
+  updateToolHint();
   const row=document.getElementById('renameRow');
   const inp=document.getElementById('renameInp');
   const canRename = state.selection.length===1 && !!P(state.selection[0]);
@@ -220,6 +221,24 @@ function handleToolTap(tool){
   tryBuild();
   updateSelInfo(); draw();
 }
+const TOOLHINT={
+  select:'<b>Выбор.</b> Клик по вершине выбирает точку, клик по объекту — выделяет его, Delete удаляет. Вращение — ЛКМ, масштаб — колесо.',
+  point:'<b>Точка.</b> Клик по пустому месту ставит точку на плоскости z (высоту задаёт ползунок в панели); клик по ребру, грани или оси координат — привязка к ним.',
+  segment:'<b>Отрезок.</b> Кликните две вершины — отрезок построится автоматически.',
+  line:'<b>Прямая.</b> Кликните две вершины — прямая построится автоматически.',
+  plane:'<b>Плоскость.</b> Кликните три вершины — плоскость построится автоматически.',
+  section:'<b>Сечение.</b> Кликните три точки — сечение построится; пошаговое построение — в блоке «Сечение» в панели.'
+};
+function updateToolHint(){
+  const el=document.getElementById('toolHint');
+  if(!el) return;
+  const need=needFor(state.tool);
+  let s=TOOLHINT[state.tool]||'';
+  if(need>0 && state.selection.length>0 && state.selection.length<need)
+    s+=' <span style="color:#ffd166">Выбрано '+state.selection.length+' из '+need+'.</span>';
+  el.innerHTML=s;
+  el.style.display=s?'block':'none';
+}
 document.querySelectorAll('.tool').forEach(t=>{
   t.addEventListener('click',()=>handleToolTap(t.dataset.tool));
 });
@@ -231,6 +250,7 @@ function setTool(t){
   }
   document.querySelectorAll('.tool').forEach(x=>x.classList.toggle('on',x.dataset.tool===t));
   document.querySelectorAll('#toolPalette .tk').forEach(x=>x.classList.toggle('on',x.dataset.tool===t));
+  updateToolHint();
   if(typeof setPanelOpen==='function' && typeof compactUI==='function' && compactUI()) setPanelOpen(false);
 }
 
