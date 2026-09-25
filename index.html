@@ -121,6 +121,15 @@
   #badge b{color:var(--acc2)}
   #badge .fl{margin-top:5px;padding-top:5px;border-top:1px solid #2a3342;color:#bcd2ee;text-align:right}
 
+  #revPrompt{
+    display:none;position:absolute;left:50%;top:14px;transform:translateX(-50%);
+    background:#0d1219f0;border:1px solid var(--acc);border-radius:9px;
+    padding:9px 15px;font-size:12.5px;color:#e6edf6;z-index:6;max-width:72%;
+    text-align:center;line-height:1.5;box-shadow:0 6px 20px rgba(0,0,0,.5);pointer-events:none;
+  }
+  #revPrompt b{color:var(--acc2)}
+  #revPrompt .step{color:var(--dim);font-size:11px}
+
   /* блок обоснования построения */
   #explain{
     position:absolute;right:14px;top:12px;width:374px;max-width:48vw;
@@ -168,7 +177,7 @@
       <h2>Фигура</h2>
       <label class="lbl">Многогранник / тело</label>
       <select id="shapeSel"></select>
-      <div class="row" style="margin-top:8px">
+      <div class="row" id="sizeRow" style="margin-top:8px">
         <div>
           <label class="lbl">Размер</label>
           <input type="number" id="pSize" value="2" step="0.5" min="0.5">
@@ -205,28 +214,25 @@
           <div class="hint">Меняйте координаты вершин — так из прямоугольника получается трапеция, параллелограмм или любая другая фигура. Основание строится по этим координатам, высота задаётся выше.</div>
         </div>
       </div>
+      <div id="revBox" style="display:none;margin-top:9px;padding-top:9px;border-top:1px solid #2a3342">
+        <label class="lbl">Как задать тело вращения</label>
+        <select id="revMode">
+          <option value="points">По двум точкам: центр и точка</option>
+          <option value="size">По размеру и высоте</option>
+        </select>
+        <div id="revPointsBox" style="margin-top:8px">
+          <div id="revNeed" class="hint" style="margin-top:0"></div>
+          <div id="revRadiusRow" style="display:none;margin-top:7px">
+            <label class="lbl">Радиус r</label>
+            <input type="number" id="revRadius" value="1" step="0.25" min="0.05">
+          </div>
+          <div class="selinfo" id="revInfo" style="margin-top:7px"></div>
+        </div>
+      </div>
       <div class="grid2" style="margin-top:9px">
         <button class="btn pri" id="btnLoad">Загрузить фигуру</button>
         <button class="btn" id="btnClearAll">Очистить всё</button>
       </div>
-    </div>
-
-    <!-- Тела вращения по центру и точке -->
-    <div class="card">
-      <h2>Тело вращения по центру и точке</h2>
-      <label class="lbl">Определение двумя точками</label>
-      <select id="revKind">
-        <option value="sphere">Сфера: A — центр, B — на поверхности</option>
-        <option value="cylinder">Цилиндр: A, B — центры оснований</option>
-        <option value="cone">Конус: A — центр основания, B — вершина</option>
-      </select>
-      <div id="revRadiusRow" style="display:none;margin-top:8px">
-        <label class="lbl">Радиус r</label>
-        <input type="number" id="revRadius" value="1" step="0.25" min="0.05">
-      </div>
-      <div class="selinfo" id="revInfo" style="margin-top:8px">Выберите две точки на сцене: A — первая выбранная, B — вторая.</div>
-      <button class="btn pri" id="btnRev" style="margin-top:8px">Построить тело по точкам A и B</button>
-      <div class="hint">Сфера: A — центр, B — точка на поверхности, радиус r = |AB|. Цилиндр: A и B — центры оснований (ось AB), радиус задаётся числом. Конус: A — центр основания, B — вершина, радиус задаётся числом. Сначала поставьте две точки (инструмент «Точка» или карточка «Точка по координатам»), затем инструментом «Выбор» кликните их по очереди и нажмите кнопку. Тело строится вдоль оси AB в любом направлении; вершины загруженной фигуры тоже подходят как A и B.</div>
     </div>
 
     <!-- Задача текстом -->
@@ -344,6 +350,7 @@
 
   <main id="stage">
     <canvas id="cv"></canvas>
+    <div id="revPrompt"></div>
     <div id="explain">
       <div class="eh">
         <b>Построение сечения — обоснование</b>
@@ -456,7 +463,7 @@ const state = {
   points:[], solids:[], segments:[], lines:[], planes:[], sections:[],
   selection:[], selObj:null, hoverPt:null, showGrid:true, showAxes:true, showLabels:true, showHidden:true,
   showAuto:true, showExt:true, dyn:null, build:null, tool:'select',
-  pointZ:0, baseXY:null,
+  pointZ:0, baseXY:null, revWizard:null,
   intersect:{ll:[],lp:[],lf:[],pp:[]}
 };
 const byId = new Map();
@@ -672,7 +679,7 @@ const SHAPES = {
     }
   },
   cylinder:{
-    label:'Цилиндр',
+    label:'Цилиндр', revolution:true,
     build:(a,h)=>{const n=48,r=a/2;
       const verts=[]; const bottom=[],top=[];
       for(let i=0;i<n;i++){const ang=i*2*Math.PI/n;
@@ -689,7 +696,7 @@ const SHAPES = {
     }
   },
   cone:{
-    label:'Конус',
+    label:'Конус', revolution:true,
     build:(a,h)=>{const n=48,r=a/2;
       const verts=[{p:[0,0,h/2],label:'S'}];
       const ring=[];
@@ -708,7 +715,7 @@ const SHAPES = {
     }
   },
   sphere:{
-    label:'Сфера',
+    label:'Сфера', revolution:true,
     build:(a)=>{const n=36,m=12,r=a/2;
       const verts=[]; const rings=[];
       const top=0;
@@ -2099,37 +2106,78 @@ function buildRevolution(kind,idA,idB,r){
   resize(); adjustScale();
   return {solid,desc};
 }
-const revKindSel=document.getElementById('revKind');
-const revRadiusRow=document.getElementById('revRadiusRow');
-function syncRevUI(){ revRadiusRow.style.display = revKindSel.value==='sphere'?'none':'block'; updateRevInfo(); }
-function updateRevInfo(){
-  const el=document.getElementById('revInfo');
-  if(!el) return;
-  const ids=state.selection.filter(id=>P(id));
-  if(ids.length!==2){
-    el.innerHTML='Выбрано точек: <b>'+ids.length+'</b> из <b>2</b>. A — первая выбранная, B — вторая.';
+const revNeedEl=()=>document.getElementById('revNeed');
+const revInfoEl=()=>document.getElementById('revInfo');
+const revPromptEl=()=>document.getElementById('revPrompt');
+const revRoleText={
+  sphere:{A:'центр сферы', B:'точка на поверхности'},
+  cylinder:{A:'центр нижнего основания', B:'центр верхнего основания'},
+  cone:{A:'центр основания', B:'вершина конуса'}
+};
+function revIsPointsMode(){ return document.getElementById('revMode').value==='points'; }
+function revNeedsRadius(kind){ return kind==='cylinder'||kind==='cone'; }
+function updateRevNeed(){
+  const el=revNeedEl(); if(!el) return;
+  const kind=shapeSel.value;
+  const role=revRoleText[kind];
+  if(!role){ el.innerHTML=''; return; }
+  let s;
+  if(kind==='sphere') s='Сфера задаётся центром и точкой: <span class="m">A</span> — '+role.A+', <span class="m">B</span> — '+role.B+'; радиус r = |AB|.';
+  else s=(SHAPES[kind].label)+' задаётся осью и радиусом: <span class="m">A</span> — '+role.A+', <span class="m">B</span> — '+role.B+'; радиус введите ниже.';
+  el.innerHTML=s;
+}
+function updateRevWizardUI(){
+  const info=revInfoEl(), prompt=revPromptEl();
+  const w=state.revWizard;
+  if(!info) return;
+  if(!w){
+    if(info) info.innerHTML='Нажмите «Загрузить фигуру», чтобы на сцене указать точки A и B. Можно кликать по вершинам уже загруженной фигуры.';
+    if(prompt){ prompt.style.display='none'; prompt.innerHTML=''; }
     return;
   }
-  const A=P(ids[0]), B=P(ids[1]), d=V.dist(A.p,B.p), kind=revKindSel.value;
-  let tail;
-  if(kind==='sphere') tail='радиус r = |'+liveLabel(ids[0])+liveLabel(ids[1])+'| = <b>'+round(d,3).toFixed(3)+'</b>';
-  else if(kind==='cylinder') tail='ось '+liveLabel(ids[0])+liveLabel(ids[1])+', высота = <b>'+round(d,3).toFixed(3)+'</b>, r = '+(document.getElementById('revRadius').value||'1');
-  else tail='высота = <b>'+round(d,3).toFixed(3)+'</b>, r = '+(document.getElementById('revRadius').value||'1');
-  el.innerHTML='A = <b>'+liveLabel(ids[0])+'</b> '+fmtV(A.p)+', B = <b>'+liveLabel(ids[1])+'</b> '+fmtV(B.p)+'; '+tail+'.';
+  const kind=w.kind, role=revRoleText[kind], need=2, got=w.ids.length;
+  const names=w.ids.map(id=>liveLabel(id));
+  let s='<div class="step">Шаг '+(got+1)+' из '+need+'</div>';
+  s+='Кликните точку <b>'+(got===0?'A':'B')+'</b> — '+role[got===0?'A':'B']+'.';
+  if(got===1) s+='<br>Точка A: <b>'+names[0]+'</b>.';
+  if(info) info.innerHTML=s;
+  if(prompt){
+    prompt.style.display='block';
+    prompt.innerHTML='<div class="step">Тело вращения · шаг '+(got+1)+' из '+need+'</div>'
+      +'Укажите точку <b>'+(got===0?'A':'B')+'</b> — '+role[got===0?'A':'B']
+      +(got===1?('<br>Точка A: <b>'+names[0]+'</b>'):'')
+      +'<br><span class="step">клик по вершине фигуры или по пустому месту (тогда точка ставится на плоскости z = '+round(state.pointZ,2)+')</span>';
+  }
 }
-revKindSel.addEventListener('change',syncRevUI);
-document.getElementById('revRadius').addEventListener('input',updateRevInfo);
-document.getElementById('btnRev').addEventListener('click',()=>{
-  const ids=state.selection.filter(id=>P(id));
-  if(ids.length!==2){ flash('Выберите ровно две точки: A и B'); return; }
+function startRevWizard(kind){
+  if(!revRoleText[kind]){ loadShape(kind); draw(); return; }
+  state.revWizard={kind, ids:[]};
+  setTool('point');
+  updateRevWizardUI();
+  flash('Укажите точки A и B для тела вращения');
+  draw();
+}
+function revWizardUsePoint(id){
+  const w=state.revWizard; if(!w) return;
+  if(w.ids.includes(id)) return;
+  w.ids.push(id);
+  if(w.ids.length>=2) finishRevWizard();
+  else { updateRevWizardUI(); draw(); }
+}
+function finishRevWizard(){
+  const w=state.revWizard; if(!w) return;
   const r=parseFloat(document.getElementById('revRadius').value);
-  const res=buildRevolution(revKindSel.value, ids[0], ids[1], r);
-  if(!res) return;
-  state.selection=[]; state.selObj={kind:'solid',id:res.solid.id};
+  const res=buildRevolution(w.kind, w.ids[0], w.ids[1], r);
+  state.revWizard=null;
+  if(res){ state.selection=[]; state.selObj={kind:'solid',id:res.solid.id}; flash(res.desc); }
+  setTool('select');
+  updateRevWizardUI();
   renderObjList(); updateSelInfo(); draw();
-  flash(res.desc);
-});
-syncRevUI();
+}
+function cancelRevWizard(){
+  if(!state.revWizard) return;
+  state.revWizard=null; updateRevWizardUI(); draw();
+}
 
 let kv=1;
 function solidColorNext(){ return solidColor(kv++); }
@@ -2210,12 +2258,16 @@ function handleClick(e){
   const r=canvas.getBoundingClientRect();
   const sx=e.clientX-r.left, sy=e.clientY-r.top;
   const pt=pickPoint(sx,sy);
-  if(pt){ state.selObj=null; toggleSelect(pt.id); return; }
-  if(state.tool==='point'){
+  if(pt){
+    if(state.revWizard){ revWizardUsePoint(pt.id); return; }
+    state.selObj=null; toggleSelect(pt.id); return;
+  }
+  if(state.tool==='point' || state.revWizard){
     const snap=computeSnap(sx,sy);
     const p = snap ? snap.p : screenToHeightPlane(sx,sy,state.pointZ);
     const col = snap ? snapColor(snap.kind) : '#ffd166';
     const np=addPoint(p,autoLabel(),{color:col});
+    if(state.revWizard){ state.hoverPt=null; revWizardUsePoint(np.id); return; }
     state.selection=[np.id]; state.selObj=null; state.hoverPt=null;
     flash(snap ? ('Точка на '+(snap.kind==='edge'?'ребре':snap.kind==='mid'?'середине ребра':snap.kind==='center'?'центре грани':
                     snap.kind==='line'?'прямой':snap.kind==='segment'?'отрезке':'грани'))
@@ -2249,7 +2301,6 @@ function toggleSelect(id){
 function updateSelInfo(){
   const el=document.getElementById('selInfo');
   pruneSelection();
-  updateRevInfo();
   const row=document.getElementById('renameRow');
   const inp=document.getElementById('renameInp');
   const canRename = state.selection.length===1 && !!P(state.selection[0]);
@@ -2318,7 +2369,10 @@ document.querySelectorAll('.tool').forEach(t=>{
 });
 function setTool(t){
   state.tool=t;
-  if(t!=='point') state.hoverPt=null;
+  if(t!=='point'){
+    state.hoverPt=null;
+    if(state.revWizard) cancelRevWizard();
+  }
   document.querySelectorAll('.tool').forEach(x=>x.classList.toggle('on',x.dataset.tool===t));
 }
 
@@ -2365,7 +2419,13 @@ function deleteSelection(){
   updateSelInfo(); draw();
 }
 
-document.getElementById('btnLoad').addEventListener('click',()=>{ loadShape(shapeSel.value); draw(); });
+document.getElementById('btnLoad').addEventListener('click',()=>{
+  const def=SHAPES[shapeSel.value]||{};
+  if(def.revolution && revIsPointsMode()){ startRevWizard(shapeSel.value); return; }
+  loadShape(shapeSel.value); draw();
+});
+document.getElementById('revMode').addEventListener('change',()=>{ cancelRevWizard(); syncShapeUI(); draw(); });
+document.getElementById('revRadius').addEventListener('input',()=>{ updateRevNeed(); });
 document.getElementById('pSides').addEventListener('input',e=>{
   document.getElementById('pSidesVal').textContent=e.target.value;
   state.baseXY=null;
@@ -2380,8 +2440,15 @@ document.getElementById('pSides').addEventListener('input',e=>{
 });
 function syncShapeUI(){
   const def=SHAPES[shapeSel.value]||{};
+  const rev=!!def.revolution;
   document.getElementById('customBox').style.display = def.off ? 'block':'none';
   document.getElementById('sidesRow').style.display = def.sides ? 'block':'none';
+  document.getElementById('revBox').style.display = rev ? 'block':'none';
+  const pointsMode = rev && revIsPointsMode();
+  document.getElementById('revPointsBox').style.display = pointsMode ? 'block':'none';
+  document.getElementById('sizeRow').style.display = pointsMode ? 'none':'';
+  document.getElementById('revRadiusRow').style.display = (pointsMode && revNeedsRadius(shapeSel.value)) ? 'block':'none';
+  updateRevNeed(); updateRevWizardUI();
   renderBaseEditor();
 }
 function currentBaseXY(){
@@ -2431,7 +2498,7 @@ document.getElementById('btnBaseTrap').addEventListener('click',()=>{
   loadShape(shapeSel.value); draw();
   flash('Основание сделано трапецией');
 });
-shapeSel.addEventListener('change',()=>{ state.baseXY=null; syncShapeUI(); });
+shapeSel.addEventListener('change',()=>{ state.baseXY=null; cancelRevWizard(); syncShapeUI(); });
 syncShapeUI();
 document.getElementById('btnParse').addEventListener('click',runProblem);
 document.getElementById('btnParseDemo').addEventListener('click',()=>{
@@ -2441,8 +2508,8 @@ document.getElementById('btnParseDemo').addEventListener('click',()=>{
 });
 document.getElementById('btnClearAll').addEventListener('click',()=>{
   state.solids=[]; state.points=[]; state.segments=[]; state.lines=[]; state.planes=[];
-  state.sections=[]; state.selection=[]; state.selObj=null; state.dyn=null; state.build=null; kv=1;
-  rebuildIndex(); updateDynUI(); updateStepUI(); renderObjList(); updateSelInfo(); draw();
+  state.sections=[]; state.selection=[]; state.selObj=null; state.dyn=null; state.build=null; state.revWizard=null; kv=1;
+  rebuildIndex(); updateDynUI(); updateStepUI(); renderObjList(); updateSelInfo(); updateRevWizardUI(); draw();
 });
 document.getElementById('btnClrSel').addEventListener('click',()=>{ state.selection=[]; state.selObj=null; updateSelInfo(); draw(); });
 document.getElementById('btnRename').addEventListener('click',()=>{
@@ -2516,7 +2583,10 @@ document.getElementById('explToggle').addEventListener('click',()=>{
 window.addEventListener('keydown',e=>{
   const tg=(e.target&&e.target.tagName)||'';
   if(/INPUT|SELECT|TEXTAREA/.test(tg)) return;
-  if(e.key==='Escape'){ state.selection=[]; state.selObj=null; updateSelInfo(); draw(); }
+  if(e.key==='Escape'){
+    if(state.revWizard){ cancelRevWizard(); updateSelInfo(); draw(); return; }
+    state.selection=[]; state.selObj=null; updateSelInfo(); draw();
+  }
   else if(e.key==='Delete'||e.key==='Backspace'){ e.preventDefault(); deleteSelection(); }
 });
 window.addEventListener('resize',()=>{ draw(); });
