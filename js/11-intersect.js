@@ -1,5 +1,5 @@
 'use strict';
-/* 09-intersect.js — Автоматические точки пересечения прямых, плоскостей и граней. */
+/* 11-intersect.js — Автоматические точки пересечения прямых, плоскостей и граней. */
 /* -------- автоматические точки пересечения прямых/отрезков -------- */
 const SUBD={0:'₀',1:'₁',2:'₂',3:'₃',4:'₄',5:'₅',6:'₆',7:'₇',8:'₈',9:'₉'};
 const subDigits=n=>String(n).split('').map(c=>SUBD[c]||c).join('');
@@ -170,35 +170,4 @@ function recomputeAutoPoints(){
   state.points=next;
   rebuildIndex();
 }
-
-function pickObject(sx,sy){
-  const TH=9;
-  for(const o of state.sections){
-    if(!o.show) continue;
-    if(pointInPoly(sx,sy,o.pts.map(project))) return {kind:'section',id:o.id};
-  }
-  for(const s of state.solids){
-    if(!s.show) continue;
-    const pts=coordsOf(s);
-    for(let fi=0;fi<s.faces.length;fi++){
-      if(s.smooth && V.dot(s.normals[fi],cam.dir)<=0) continue;
-      const sp=s.faces[fi].map(i=>project(pts[i]));
-      if(pointInPoly(sx,sy,sp)) return {kind:'solid',id:s.id};
-    }
-  }
-  let best=null,bestD=TH;
-  const consider=(kind,id,pts)=>{ const d=distToPoly(sx,sy,pts); if(d<bestD){bestD=d;best={kind,id};} };
-  for(const o of state.segments){ if(!o.show||!P(o.a)||!P(o.b))continue; consider('segment',o.id,[project(P(o.a).p),project(P(o.b).p)]); }
-  for(const o of state.lines){ const e=lineEnds(o); if(o.show&&e) consider('line',o.id,[project(e[0]),project(e[1])]); }
-  if(best) return best;
-  for(const o of state.planes){
-    if(!o.show) continue;
-    const c=planeCorners(o); if(!c) continue;
-    if(pointInPoly(sx,sy,c.map(project))) return {kind:'plane',id:o.id};
-  }
-  if(bestD<TH) return best;
-  for(const o of state.planes){ const c=o.show?planeCorners(o):null; if(c) consider('plane',o.id,c.map(project)); }
-  return best;
-}
-const isSel = (kind,id) => state.selObj && state.selObj.kind===kind && state.selObj.id===id;
 
