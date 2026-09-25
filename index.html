@@ -214,11 +214,11 @@
     <!-- Тела вращения по центру и точке -->
     <div class="card">
       <h2>Тело вращения по центру и точке</h2>
-      <label class="lbl">Определение (как в GeoGebra)</label>
+      <label class="lbl">Определение двумя точками</label>
       <select id="revKind">
-        <option value="sphere">Сфера · Sphere(A, B): A — центр, B — на поверхности</option>
-        <option value="cylinder">Цилиндр · Cylinder(A, B, r): A, B — центры оснований</option>
-        <option value="cone">Конус · Cone(A, B, r): A — центр основания, B — вершина</option>
+        <option value="sphere">Сфера: A — центр, B — на поверхности</option>
+        <option value="cylinder">Цилиндр: A, B — центры оснований</option>
+        <option value="cone">Конус: A — центр основания, B — вершина</option>
       </select>
       <div id="revRadiusRow" style="display:none;margin-top:8px">
         <label class="lbl">Радиус r</label>
@@ -226,7 +226,7 @@
       </div>
       <div class="selinfo" id="revInfo" style="margin-top:8px">Выберите две точки на сцене: A — первая выбранная, B — вторая.</div>
       <button class="btn pri" id="btnRev" style="margin-top:8px">Построить тело по точкам A и B</button>
-      <div class="hint">Как команды GeoGebra: <b>Sphere(A, B)</b> — центр A через точку B; <b>Cylinder(A, B, r)</b> — A и B центры оснований (ось AB); <b>Cone(A, B, r)</b> — A центр основания, B вершина. Сначала поставьте две точки (инструмент «Точка» или карточка «Точка по координатам»), затем инструментом «Выбор» кликните их по очереди и нажмите кнопку. Тело строится вдоль оси AB в любом направлении.</div>
+      <div class="hint">Сфера: A — центр, B — точка на поверхности, радиус r = |AB|. Цилиндр: A и B — центры оснований (ось AB), радиус задаётся числом. Конус: A — центр основания, B — вершина, радиус задаётся числом. Сначала поставьте две точки (инструмент «Точка» или карточка «Точка по координатам»), затем инструментом «Выбор» кликните их по очереди и нажмите кнопку. Тело строится вдоль оси AB в любом направлении; вершины загруженной фигуры тоже подходят как A и B.</div>
     </div>
 
     <!-- Задача текстом -->
@@ -733,16 +733,7 @@ const SHAPES = {
       }
       const last=idx[idx.length-1];
       for(let i=0;i<n;i++){const j=(i+1)%n; faces.push([bot,last[i],last[j]]);}
-      const curves=[];
-      for(let j=0;j<idx.length;j+=2){
-        curves.push({pts:idx[j].map(i=>verts[i].p), nrm:idx[j].map(i=>V.norm(verts[i].p))});
-      }
-      for(let i=0;i<n;i+=3){
-        const col=[];
-        for(const row of idx) col.push(row[i]);
-        curves.push({pts:col.map(i=>verts[i].p), nrm:col.map(i=>V.norm(verts[i].p))});
-      }
-      return {verts,faces,curves};
+      return {verts,faces,curves:[]};
     }
   },
   myPyramid:{
@@ -2033,7 +2024,7 @@ function adjustScale(){
   cam.scale = Math.min(cw,ch)/(R*2.9);
 }
 
-/* ---------- тела вращения по двум точкам (как в GeoGebra) ---------- */
+/* ---------- тела вращения по двум точкам ---------- */
 function axisFrame(A,B){
   const w=V.norm(V.sub(B,A));
   const ref=Math.abs(w[2])>0.9?[1,0,0]:[0,0,1];
@@ -2060,11 +2051,7 @@ function revSphere(A,R){
   for(let j=0;j<idx.length-1;j++)for(let i=0;i<n;i++){const k=(i+1)%n; faces.push([idx[j][i],idx[j][k],idx[j+1][k],idx[j+1][i]]);}
   const last=idx[idx.length-1];
   for(let i=0;i<n;i++){const j=(i+1)%n; faces.push([bot,last[i],last[j]]);}
-  const curves=[];
-  const nrmOf=i=>V.norm(V.sub(verts[i].p,A));
-  for(let j=0;j<idx.length;j+=2) curves.push({pts:idx[j].map(i=>verts[i].p), nrm:idx[j].map(nrmOf)});
-  for(let i=0;i<n;i+=3){ const col=[]; for(const row of idx) col.push(row[i]); curves.push({pts:col.map(i=>verts[i].p), nrm:col.map(nrmOf)}); }
-  return {verts,faces,curves};
+  return {verts,faces,curves:[]};
 }
 function revCylinder(A,B,r){
   const n=48, {u,v}=axisFrame(A,B), verts=[], bottom=[], top=[];
@@ -2095,17 +2082,17 @@ function buildRevolution(kind,idA,idB,r){
     const R=V.dist(A,B);
     shape=revSphere(A,R);
     name='Сфера ('+la+') через '+lb;
-    desc='Sphere('+la+', '+lb+'): центр '+la+' '+fmtV(A)+', точка '+lb+' на поверхности, r = |'+la+lb+'| = '+round(R,3).toFixed(3);
+    desc='Сфера: центр '+la+' '+fmtV(A)+', точка '+lb+' на поверхности, r = |'+la+lb+'| = '+round(R,3).toFixed(3);
   }else if(kind==='cylinder'){
     const rr=+r||1;
     shape=revCylinder(A,B,rr);
     name='Цилиндр '+la+lb;
-    desc='Cylinder('+la+', '+lb+', '+rr+'): '+la+', '+lb+' — центры оснований, ось '+la+lb+', r = '+rr;
+    desc='Цилиндр: '+la+', '+lb+' — центры оснований, ось '+la+lb+', r = '+rr;
   }else{
     const rr=+r||1;
     shape=revCone(A,B,rr);
     name='Конус вершина '+lb+' ('+la+')';
-    desc='Cone('+la+', '+lb+', '+rr+'): '+la+' — центр основания, '+lb+' — вершина, r = '+rr;
+    desc='Конус: '+la+' — центр основания, '+lb+' — вершина, r = '+rr;
   }
   const solid=createSolid(name,shape,solidColorNext(),{smooth:true,kind});
   solid.anchor=[idA,idB];
