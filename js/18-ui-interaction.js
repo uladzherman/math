@@ -229,5 +229,6 @@ function setTool(t){
     if(state.revWizard) cancelRevWizard();
   }
   document.querySelectorAll('.tool').forEach(x=>x.classList.toggle('on',x.dataset.tool===t));
+  if(typeof compactUI==='function' && compactUI()) setPanelHidden(true);
 }
 

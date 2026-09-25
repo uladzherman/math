@@ -1,5 +1,5 @@
 'use strict';
-/* 16-main.js — Точка входа: инициализация сцены при загрузке. */
+/* 24-main.js — Точка входа: инициализация сцены при загрузке. */
 /* ============================ СТАРТ ============================ */
 (function touchAdapt(){
   if(!window.matchMedia) return;
@@ -15,6 +15,7 @@
     }
   }
 })();
+initAdaptiveUI();
 rebuildIndex();
 renderTasks();
 updateStepUI();

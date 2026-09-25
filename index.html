@@ -13,7 +13,7 @@
     <div class="sub">Построение фигур, прямых, плоскостей и сечений многогранников. Вращайте сцену мышью, выбирайте вершины кликом и строите.</div>
 
     <!-- Фигура -->
-    <div class="card">
+    <div class="card" data-primary>
       <h2>Фигура</h2>
       <label class="lbl">Многогранник / тело</label>
       <select id="shapeSel"></select>
@@ -108,7 +108,7 @@
     </div>
 
     <!-- Инструменты -->
-    <div class="card">
+    <div class="card" data-primary>
       <h2>Инструменты построения</h2>
       <div class="tools">
         <div class="tool on" data-tool="select"><span class="ic">✥</span>Выбор / вращение</div>
@@ -190,6 +190,7 @@
 
   <main id="stage">
     <canvas id="cv"></canvas>
+    <button id="panelToggle" title="Показать / скрыть панель инструментов">☰</button>
     <div id="revPrompt"></div>
     <div id="explain" class="collapsed">
       <div class="eh">

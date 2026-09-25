@@ -267,3 +267,33 @@ function renderObjList(){
 }
 
 
+/* ---------- адаптивный интерфейс (телефон / планшет) ---------- */
+function compactUI(){
+  return !!(window.matchMedia && window.matchMedia('(max-width:820px)').matches);
+}
+function setPanelHidden(v){
+  const app=document.getElementById('app');
+  if(app) app.classList.toggle('panel-hidden', !!v);
+  const b=document.getElementById('panelToggle');
+  if(b) b.textContent = v ? '☰' : '⌄';
+}
+function initCollapsibleCards(){
+  const cards=[...document.querySelectorAll('#panel .card')];
+  cards.forEach(c=>{
+    const h=c.querySelector('h2');
+    if(!h) return;
+    h.addEventListener('click',()=>c.classList.toggle('collapsed'));
+  });
+  if(compactUI()){
+    cards.forEach(c=>{ if(!c.hasAttribute('data-primary')) c.classList.add('collapsed'); });
+  }
+}
+function initAdaptiveUI(){
+  initCollapsibleCards();
+  const b=document.getElementById('panelToggle');
+  if(b) b.addEventListener('click',()=>{
+    const app=document.getElementById('app');
+    setPanelHidden(!(app && app.classList.contains('panel-hidden')));
+  });
+  if(compactUI()) setPanelHidden(false);
+}
