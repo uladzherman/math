@@ -1399,6 +1399,7 @@ function computeSnap(sx,sy){
     });
   }
   if(!best) return null;
+  if(best.solid.smooth) return {p:best.p, kind:'face'};
   const s=best.solid, pts=coordsOf(s);
   const fcs=project(centroid(best.poly));
   if(Math.hypot(fcs.x-sx,fcs.y-sy)<15) return {p:centroid(best.poly), kind:'center'};
@@ -1505,6 +1506,7 @@ function drawAxes(){
 }
 
 function drawFaces(){
+  const L=V.norm(V.add(V.mul(cam.dir,0.78), V.add(V.mul(cam.up,0.42), V.mul(cam.right,-0.42))));
   const items=[];
   for(const s of state.solids){
     if(!s.show) continue;
@@ -1512,21 +1514,27 @@ function drawFaces(){
     s.faces.forEach((f,fi)=>{
       const fp=f.map(i=>pts[i]);
       const c=centroid(fp);
-      const front = V.dot(s.normals[fi],cam.dir)>0;
+      const n=s.normals[fi];
+      const front = V.dot(n,cam.dir)>0;
       if(s.smooth && !front) return;
-      items.push({d:depthOf(c), fp, front, s});
+      items.push({d:depthOf(c), fp, s, n, front});
     });
   }
   items.sort((a,b)=>a.d-b.d);
   for(const it of items){
-    const {fp,front,s}=it;
+    const {fp,s,n,front}=it;
     const sp=fp.map(project);
     ctx.beginPath();
     ctx.moveTo(sp[0].x,sp[0].y);
     for(let i=1;i<sp.length;i++) ctx.lineTo(sp[i].x,sp[i].y);
     ctx.closePath();
     if(s.smooth){
-      ctx.fillStyle=shade(s.fill, front?0.10:0.0);
+      const nl=Math.max(0,V.dot(n,L));
+      const spec=Math.pow(nl,18)*0.35;
+      let a=0.07+0.44*nl+spec;
+      a=Math.max(0,Math.min(0.62,a));
+      if(isSel('solid',s.id)) a=Math.min(0.72,a+0.12);
+      ctx.fillStyle=shade(s.fill, a);
       ctx.fill();
     }else{
       ctx.fillStyle=shade(s.fill, isSel('solid',s.id)?0.20:(front?0.075:0.035));
