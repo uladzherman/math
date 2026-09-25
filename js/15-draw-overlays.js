@@ -3,6 +3,8 @@
 function drawBuild(){
   const b=state.build;
   if(!b) return;
+  const sec=state.sections.find(s=>s.id===b.secId);
+  if(sec && !sec.show) return;
   const n=b.steps.length, k=b.k, complete=(k>=n);
   if(!complete) patchFor(b.plane, b.poly, 'rgba(255,95,158,0.07)', 'rgba(255,95,158,0.35)');
   if(state.showExt && k>0){

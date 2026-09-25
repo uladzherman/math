@@ -195,14 +195,14 @@ function tryBuild(){
   if(new Set(ids).size!==ids.length) return false;
   let ok=true;
   if(tool==='segment'){
-    state.segments.push({id:uid(),a:ids[0],b:ids[1],color:'#4ade80',show:true});
+    state.segments.push({id:uid(),a:ids[0],b:ids[1],color:'#4ade80',show:true,op:newOp()});
   }else if(tool==='line'){
-    state.lines.push({id:uid(),a:ids[0],b:ids[1],color:'#f59e0b',show:true});
+    state.lines.push({id:uid(),a:ids[0],b:ids[1],color:'#f59e0b',show:true,op:newOp()});
   }else if(tool==='plane'){
     const pl=planeFrom3(...ids.map(i=>P(i).p));
     if(!pl){ flash('Три точки лежат на одной прямой — плоскость не задана'); ok=false; }
     else{
-      const np={id:uid(),a:ids[0],b:ids[1],c:ids[2],show:true};
+      const np={id:uid(),a:ids[0],b:ids[1],c:ids[2],show:true,op:newOp()};
       state.planes.push(np);
       state.selObj={kind:'plane',id:np.id};
       flash('Плоскость построена: синий контур — линия пересечения с фигурой');

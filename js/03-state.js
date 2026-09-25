@@ -7,14 +7,18 @@ const state = {
   selection:[], selObj:null, hoverPt:null, showGrid:true, showAxes:true, showLabels:true, showHidden:true,
   showAuto:true, showExt:true, dyn:null, build:null, tool:'select',
   pointZ:0, baseXY:null, revWizard:null,
+  opSeq:0, stepMode:'scene', tlK:0, tlMax:0, tlSaved:null,
   intersect:{ll:[],lp:[],lf:[],pp:[]}
 };
 const byId = new Map();
 function P(id){ return byId.get(id); }
+function newOp(){ return ++state.opSeq; }
 
 function addPoint(p,label,opt={}){
+  const kind=opt.kind||'user';
   const pt={id:uid(),p:[+p[0],+p[1],+p[2]],label:label||'',
-    kind:opt.kind||'user', color:opt.color||'#ffd166', solidId:opt.solidId||null,
+    kind, color:opt.color||'#ffd166', solidId:opt.solidId||null,
+    op:(opt.op!=null?opt.op:(kind==='user'?newOp():state.opSeq)),
     show:true};
   state.points.push(pt); byId.set(pt.id,pt);
   return pt;
@@ -90,6 +94,7 @@ function computeSolidGeometry(solid){
 
 function createSolid(name, shape, stroke, opt={}){
   const id=uid();
+  const op=newOp();
   const smooth=!!opt.smooth;
   let pointIds=[], coords=null, radius=0, center=null;
   if(opt.pointIds){
@@ -100,9 +105,9 @@ function createSolid(name, shape, stroke, opt={}){
     radius=Math.max(...coords.map(p=>V.dist(p,center)));
   }else{
     pointIds = shape.verts.map(v=>
-      addPoint(v.p, v.label||'', {kind:'solid', color:stroke, solidId:id}).id);
+      addPoint(v.p, v.label||'', {kind:'solid', color:stroke, solidId:id, op}).id);
   }
-  const solid = {id,name,kind:opt.kind||'',pointIds,coords,center,radius,
+  const solid = {id,name,op,kind:opt.kind||'',pointIds,coords,center,radius,
     faces:shape.faces||[],stroke, fill:opt.fill||stroke, smooth, show:true, curves:shape.curves||[]};
   computeSolidGeometry(solid);
   state.solids.push(solid);

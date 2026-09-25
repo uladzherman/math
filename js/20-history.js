@@ -5,7 +5,7 @@ let history=[], hIdx=-1, histTimer=0;
 const HIST_MAX=60;
 function snapshotStr(){
   const data={
-    uidN, kv,
+    uidN, kv, opSeq: state.opSeq,
     points: state.points.map(p=>({...p})),
     solids: state.solids.map(s=>({...s})),
     segments: state.segments.map(o=>({...o})),
@@ -39,7 +39,7 @@ function scheduleHistory(){
 }
 function restoreSnapshot(str){
   const d=JSON.parse(str);
-  uidN=d.uidN; kv=d.kv;
+  uidN=d.uidN; kv=d.kv; state.opSeq=d.opSeq||state.opSeq;
   state.points=d.points||[]; state.solids=d.solids||[];
   state.segments=d.segments||[]; state.lines=d.lines||[];
   state.planes=d.planes||[]; state.sections=d.sections||[];
@@ -47,6 +47,7 @@ function restoreSnapshot(str){
   state.baseXY=d.baseXY||null;
   state.problemGiven = d.problemGiven ? new Set(d.problemGiven) : null;
   state.selection=[]; state.selObj=null; state.revWizard=null;
+  state.tlSaved=null; state.tlMax=0;
   rebuildIndex();
   state.solids.forEach(s=>computeSolidGeometry(s));
   if(state.build){

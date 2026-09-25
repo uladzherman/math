@@ -160,19 +160,25 @@
       <input type="range" id="dynRange" min="-2" max="2" step="0.02" value="0" disabled>
       <div class="hint">Постройте сечение по 3 точкам, затем двигайте ползунок — плоскость смещается параллельно самой себе.</div>
 
-      <label class="lbl" style="margin-top:10px">Пошаговое построение: шаг <b id="stepLbl">—</b></label>
+      <label class="lbl" style="margin-top:10px">Пошаговое построение</label>
+      <select id="stepMode">
+        <option value="scene">Вся сцена — все построения</option>
+        <option value="section">Только сечение (по граням)</option>
+      </select>
+      <label class="lbl" style="margin-top:8px">Шаг <b id="stepLbl">—</b></label>
       <input type="range" id="stepRange" min="0" max="0" step="1" value="0" disabled>
       <div class="grid2" style="margin-top:5px">
         <button class="btn sm" id="btnStepPrev">◀ Назад</button>
         <button class="btn sm" id="btnStepNext">Вперёд ▶</button>
       </div>
+      <div class="hint">«Вся сцена» — ползунок проигрывает все построения по порядку: фигура, точки, отрезки, прямые, плоскости, сечения (объекты, созданные позже, скрываются). «Только сечение» — пошаговое построение выбранного сечения по граням, со следами и продолжениями.</div>
       <label class="lbl" style="margin-top:8px;display:flex;align-items:center;gap:7px;cursor:pointer">
         <input type="checkbox" id="chkTraces" checked style="width:auto"> показывать следы и номера вершин
       </label>
       <label class="lbl" style="margin-top:5px;display:flex;align-items:center;gap:7px;cursor:pointer">
         <input type="checkbox" id="chkExt" checked style="width:auto"> продолжения сторон и вспомогательные точки
       </label>
-      <div class="hint">Жёлтые штриховые отрезки — следы секущей плоскости на гранях. Номера 1…n — порядок появления вершин сечения. Зелёные штриховые линии — продолжения сторон сечения (следы на плоскостях граней), зелёные кольца — точки пересечения продолжений сторон. Голубые штриховые линии и точки — продолжения рёбер фигуры до пересечения со следом секущей плоскости. Двигайте ползунок, чтобы проиграть построение.</div>
+      <div class="hint">Жёлтые штриховые отрезки — следы секущей плоскости на гранях. Номера 1…n — порядок появления вершин сечения. Зелёные штриховые линии — продолжения сторон сечения (следы на плоскостях граней), зелёные кольца — точки пересечения продолжений сторон. Голубые штриховые линии и точки — продолжения рёбер фигуры до пересечения со следом секущей плоскости.</div>
     </div>
 
     <!-- Объекты -->
@@ -225,6 +231,7 @@
 <script src="js/10-picking.js"></script>
 <script src="js/11-intersect.js"></script>
 <script src="js/12-snap.js"></script>
+<script src="js/12b-timeline.js"></script>
 <script src="js/13-draw-primitives.js"></script>
 <script src="js/14-draw-planes.js"></script>
 <script src="js/15-draw-overlays.js"></script>

@@ -166,19 +166,46 @@ document.getElementById('dynRange').addEventListener('input',e=>{
   state.dyn.off=parseFloat(e.target.value);
   applyDyn(); draw();
 });
+function stepMove(delta){
+  if(state.stepMode==='scene'){
+    const ops=sceneOps();
+    if(!ops.length) return;
+    state.tlK=Math.max(0, Math.min(ops.length, state.tlK+delta));
+    state.tlMax=ops.length;
+    if(state.tlK>=ops.length) timelineOff(); else timelineApply(state.tlK);
+    updateStepUI(); draw(); return;
+  }
+  if(!state.build) return;
+  state.build.k=Math.max(0,Math.min(state.build.steps.length,state.build.k+delta));
+  updateStepUI(); draw();
+}
+function setStepMode(mode){
+  if(state.stepMode===mode) return;
+  if(mode==='scene'){
+    timelineOff();
+    state.stepMode='scene';
+    state.tlK=sceneOps().length; state.tlMax=state.tlK;
+  }else{
+    timelineOff();
+    state.stepMode='section';
+  }
+  updateStepUI(); draw();
+}
+document.getElementById('stepMode').addEventListener('change',e=>setStepMode(e.target.value));
 document.getElementById('stepRange').addEventListener('input',e=>{
+  if(state.stepMode==='scene'){
+    const ops=sceneOps();
+    state.tlK=Math.max(0,Math.min(ops.length,parseInt(e.target.value,10)||0));
+    state.tlMax=ops.length;
+    if(state.tlK>=ops.length) timelineOff(); else timelineApply(state.tlK);
+    updateStepUI(); draw(); return;
+  }
   if(!state.build) return;
   state.build.k=parseInt(e.target.value,10)||0;
   updateStepUI(); draw();
 });
-document.getElementById('btnStepPrev').addEventListener('click',()=>{
-  if(!state.build) return;
-  state.build.k=Math.max(0,state.build.k-1); updateStepUI(); draw();
-});
-document.getElementById('btnStepNext').addEventListener('click',()=>{
-  if(!state.build) return;
-  state.build.k=Math.min(state.build.steps.length,state.build.k+1); updateStepUI(); draw();
-});
+document.getElementById('btnStepPrev').addEventListener('click',()=>stepMove(-1));
+document.getElementById('btnStepNext').addEventListener('click',()=>stepMove(1));
 document.getElementById('chkTraces').addEventListener('change',e=>{
   if(state.build) state.build.show=e.target.checked;
   draw();
@@ -232,6 +259,7 @@ function objExists(o){
 }
 function validateSelObj(){ if(!objExists(state.selObj)) state.selObj=null; }
 function renderObjList(){
+  refreshTimeline();
   recomputeAutoPoints();
   const el=document.getElementById('objList');
   el.innerHTML='';

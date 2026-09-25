@@ -56,8 +56,14 @@ function computeBuild(sec, solid){
   return {secId:sec.id, solidId:solid.id, poly, plane:{n:sec.plane.n.slice(), d:sec.plane.d}, steps, k:n, show:true};
 }
 function updateStepUI(){
-  const b=state.build;
   const r=document.getElementById('stepRange'), lbl=document.getElementById('stepLbl');
+  if(!r||!lbl) return;
+  if(state.stepMode==='scene'){
+    refreshTimeline();
+    renderExplain();
+    return;
+  }
+  const b=state.build;
   if(!b){ r.disabled=true; r.max=0; r.value=0; lbl.textContent='—'; renderExplain(); return; }
   r.disabled=false; r.max=b.steps.length; r.value=b.k;
   lbl.textContent=b.k+' из '+b.steps.length+(b.k>=b.steps.length?' — готово':'');

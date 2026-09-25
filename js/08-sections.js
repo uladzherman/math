@@ -7,7 +7,7 @@ function addSection(solidId, ids){
   if(!pl){ flash('Точки лежат на одной прямой'); return null; }
   const poly = sectionPolygon(solid, pl);
   if(!poly){ flash('Плоскость не пересекает фигуру'); return null; }
-  const sec = {id:uid(), solidId, pts:poly, plane:pl, show:true, srcIds:ids.slice()};
+  const sec = {id:uid(), solidId, pts:poly, plane:pl, show:true, srcIds:ids.slice(), op:newOp()};
   state.sections.push(sec);
   state.dyn = {n:pl.n.slice(), d0:pl.d, off:0, solidId};
   state.build = computeBuild(sec, solid);
