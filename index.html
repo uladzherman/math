@@ -98,7 +98,7 @@
 
   /* ---------- сцена ---------- */
   #stage{flex:1;position:relative;min-width:0;background:radial-gradient(ellipse at 50% 38%,#182231 0%,#0b0e13 78%)}
-  canvas{display:block;width:100%;height:100%;cursor:grab}
+  canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
   canvas.drag{cursor:grabbing}
   #hud{
     position:absolute;left:14px;bottom:12px;font-size:11.5px;color:#9fb0c6;
@@ -161,8 +161,29 @@
   #explain .res b{color:#9fd0ff}
   @media(max-width:820px){
     #app{flex-direction:column}
-    #panel{width:100%;min-width:0;height:47%;border-right:none;border-bottom:1px solid var(--line)}
-    #stage{height:53%}
+    #panel{width:100%;min-width:0;height:50%;border-right:none;border-bottom:1px solid var(--line)}
+    #stage{height:50%}
+    #explain{left:8px;right:8px;width:auto;max-width:none;top:8px;max-height:46%}
+    #explain .eh b{font-size:11px}
+    #badge{max-width:46%;font-size:10.5px}
+    .tool{padding:11px 6px;font-size:12px}
+    .btn{padding:10px 10px;font-size:13px}
+    .btn.sm{padding:9px 8px;font-size:12.5px}
+    select,input[type=number],input[type=text],textarea{font-size:16px;padding:9px 10px}
+    label.lbl{font-size:12.5px}
+    .obj{font-size:13px;padding:8px 6px}
+    .task h3{font-size:13px}
+    .task p{font-size:12px}
+    .stat,.hint,.selinfo{font-size:12px}
+    #hud{font-size:10.5px;max-width:52%}
+  }
+  @media(max-width:560px){
+    #panel{height:55%}
+    #stage{height:45%}
+    #hud{display:none}
+    #explain{max-height:52%}
+    .tools{gap:6px}
+    .tool{padding:10px 4px;font-size:11.5px}
   }
 </style>
 </head>
@@ -2182,13 +2203,25 @@ function cancelRevWizard(){
 let kv=1;
 function solidColorNext(){ return solidColor(kv++); }
 
-/* клик / вращение */
-let dragging=false, moved=false, lastX=0,lastY=0, panMode=false;
+/* клик / вращение / жесты */
+const pointers=new Map();
+let dragging=false, moved=false, lastX=0,lastY=0, panMode=false, pinch=null;
+const pointerPos=e=>({x:e.clientX,y:e.clientY});
+function pinchInfo(){
+  const ps=[...pointers.values()];
+  return {d:Math.hypot(ps[0].x-ps[1].x, ps[0].y-ps[1].y),
+          mid:{x:(ps[0].x+ps[1].x)/2, y:(ps[0].y+ps[1].y)/2}};
+}
 canvas.addEventListener('pointerdown',e=>{
-  canvas.setPointerCapture(e.pointerId);
-  dragging=true; moved=false; lastX=e.clientX; lastY=e.clientY;
-  panMode=e.shiftKey;
+  try{ canvas.setPointerCapture(e.pointerId); }catch(_){}
+  pointers.set(e.pointerId, pointerPos(e));
   canvas.classList.add('drag');
+  if(pointers.size===1){
+    dragging=true; moved=false; lastX=e.clientX; lastY=e.clientY; panMode=e.shiftKey; pinch=null;
+  }else if(pointers.size===2){
+    dragging=false; moved=true;
+    const m=pinchInfo(); pinch={d0:m.d||1, s0:cam.scale, mid:m.mid};
+  }
 });
 let pendingDraw=false;
 function requestDraw(){
@@ -2197,6 +2230,18 @@ function requestDraw(){
   requestAnimationFrame(()=>{ pendingDraw=false; draw(); });
 }
 canvas.addEventListener('pointermove',e=>{
+  if(pointers.has(e.pointerId)) pointers.set(e.pointerId, pointerPos(e));
+  if(pointers.size>=2){
+    if(pinch){
+      const m=pinchInfo();
+      cam.scale = Math.max(18, Math.min(600, pinch.s0*(m.d/pinch.d0)));
+      const dx=m.mid.x-pinch.mid.x, dy=m.mid.y-pinch.mid.y;
+      cam.target = V.add(cam.target, V.add(V.mul(cam.right,-dx/cam.scale), V.mul(cam.up, dy/cam.scale)));
+      pinch.mid=m.mid;
+      requestDraw();
+    }
+    return;
+  }
   if(!dragging){
     if(state.tool==='point'){
       const r=canvas.getBoundingClientRect();
@@ -2219,9 +2264,22 @@ canvas.addEventListener('pointermove',e=>{
   }
   requestDraw();
 });
-canvas.addEventListener('pointerup',e=>{
-  dragging=false; canvas.classList.remove('drag');
-  if(!moved) handleClick(e);
+function endPointer(e,isCancel){
+  pointers.delete(e.pointerId);
+  if(pointers.size===1){
+    const p=[...pointers.values()][0];
+    dragging=true; moved=true; pinch=null; lastX=p.x; lastY=p.y;
+    return;
+  }
+  if(pointers.size===0){
+    const wasMoved=moved; dragging=false; pinch=null; canvas.classList.remove('drag');
+    if(!wasMoved && !isCancel) handleClick(e);
+  }
+}
+canvas.addEventListener('pointerup',e=>endPointer(e,false));
+canvas.addEventListener('pointercancel',e=>endPointer(e,true));
+canvas.addEventListener('pointerleave',e=>{
+  if(e.pointerType==='mouse' && pointers.size===0){ dragging=false; pinch=null; canvas.classList.remove('drag'); }
 });
 canvas.addEventListener('wheel',e=>{
   e.preventDefault();
@@ -3075,6 +3133,20 @@ function runProblem(){
 }
 
 /* ============================ СТАРТ ============================ */
+(function touchAdapt(){
+  if(!window.matchMedia) return;
+  const coarse=window.matchMedia('(pointer:coarse)').matches;
+  if(coarse){
+    const hud=document.getElementById('hud');
+    if(hud) hud.innerHTML='<kbd>1 палец</kbd> вращение &nbsp; <kbd>2 пальца</kbd> масштаб и панорама<br>'+
+      '<kbd>тап по вершине</kbd> выбрать &nbsp; <kbd>двойной тап</kbd> переименовать';
+    const ex=document.getElementById('explain');
+    if(ex){
+      ex.classList.add('collapsed');
+      const t=document.getElementById('explToggle'); if(t) t.textContent='▸';
+    }
+  }
+})();
 rebuildIndex();
 renderTasks();
 loadShape('cube');
