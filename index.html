@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Тренажёр по математике — ЦЭ/ЦТ 2026</title>
-  <meta name="description" content="Интерактивный тренажёр по математике для подготовки к ЦЭ/ЦТ: тренировка по темам, экзамен на 30 заданий с таймером, баллы РИКЗ и разбор решений.">
+  <title>Тренажёр по математике — формулы, карточки и задачи ЦЭ/ЦТ</title>
+  <meta name="description" content="Тренажёр по математике для подготовки к ЦЭ/ЦТ: карточки формул, соответствие, выбор формулы и названия, задачи, экзамен на 30 заданий с таймером и графики функций.">
   <link rel="icon" href="data:,">
 
   <link rel="stylesheet"
@@ -19,7 +19,7 @@
       <div class="header__top">
         <div class="header__head">
           <h1>Тренажёр по математике</h1>
-          <p class="subtitle">Подготовка к ЦЭ/ЦТ 2026 — тренировка, экзамен, разбор и справочник</p>
+          <p class="subtitle">Карточки формул, соответствие, задачи — подготовка к ЦЭ/ЦТ 2026</p>
         </div>
         <div class="socials">
           <a class="social-icon" href="https://www.instagram.com/fizmathimbio/" target="_blank"
@@ -40,14 +40,18 @@
       </div>
 
       <nav class="tabs" id="tabs" aria-label="Режимы">
-        <button type="button" class="tab is-active" data-mode="practice">Тренировка</button>
+        <button type="button" class="tab is-active" data-mode="cards">Карточки</button>
+        <button type="button" class="tab" data-mode="match">Соответствие</button>
+        <button type="button" class="tab" data-mode="formulas">Формулы</button>
+        <button type="button" class="tab" data-mode="names">Названия</button>
+        <button type="button" class="tab" data-mode="tasks">Задачи</button>
         <button type="button" class="tab" data-mode="exam">Экзамен</button>
         <button type="button" class="tab" data-mode="history">Разбор</button>
-        <button type="button" class="tab" data-mode="reference">Справочник</button>
+        <button type="button" class="tab" data-mode="review">Повторение <span class="tab__count" id="dueCount">0</span></button>
         <button type="button" class="tab" data-mode="graph">Графики</button>
       </nav>
 
-      <div class="progress" id="progress" aria-label="Прогресс тренировки">
+      <div class="progress" id="progress" aria-label="Прогресс изучения">
         <div class="progress__bar"><span id="progressFill"></span></div>
         <span class="progress__label" id="progressLabel">0 / 0</span>
       </div>
@@ -56,23 +60,80 @@
 
   <main class="wrap">
 
-    <!-- ===== Режим: тренировка ===== -->
-    <section class="view quiz" id="viewPractice">
-      <div class="chips" id="practiceChips" role="tablist" aria-label="Разделы"></div>
-      <p class="quiz__meta" id="practiceMeta">Задача 0 · Верно 0 · Ошибок 0</p>
+    <!-- ===== Режим: карточки ===== -->
+    <section class="view" id="viewCards">
+      <div class="controls">
+        <div class="chips" id="sectionChips" role="tablist" aria-label="Разделы"></div>
+        <div class="buttons">
+          <button type="button" id="shuffleBtn" class="btn">Перемешать</button>
+          <button type="button" id="resetBtn" class="btn btn--ghost">Сбросить прогресс</button>
+        </div>
+      </div>
+      <div class="grid" id="grid"></div>
+      <p class="empty" id="empty" hidden>В этом разделе нет карточек.</p>
+    </section>
 
+    <!-- ===== Режим: соответствие ===== -->
+    <section class="view" id="viewMatch" hidden>
+      <p class="quiz__meta" id="matchMeta">Собрано пар 0 · Ошибок 0</p>
+      <p class="match__hint" id="matchHint">Соедините название формулы слева с её записью справа.</p>
+      <div class="match__board" id="matchBoard">
+        <div class="match__col" id="matchNames"></div>
+        <div class="match__col" id="matchFormulas"></div>
+      </div>
+      <div class="quiz__row">
+        <button type="button" id="matchNext" class="btn" disabled>Следующий раунд</button>
+        <button type="button" id="matchReset" class="btn btn--ghost">Сбросить прогресс</button>
+      </div>
+      <p class="feedback" id="matchFeedback"></p>
+    </section>
+
+    <!-- ===== Режим: формулы (название → формула) ===== -->
+    <section class="view quiz" id="viewFormulas" hidden>
+      <p class="quiz__meta" id="formulaMeta">Задача 0 · Верно 0 · Ошибок 0</p>
+      <div class="quiz__card">
+        <p class="quiz__prompt">Какая формула соответствует названию:</p>
+        <p class="quiz__caption" id="formulaSection"></p>
+        <p class="quiz__name" id="formulaName"></p>
+      </div>
+      <div class="options" id="formulaOptions"></div>
+      <div class="quiz__row">
+        <button type="button" id="formulaNext" class="btn btn--ghost">Дальше</button>
+        <button type="button" id="formulaReset" class="btn btn--ghost">Сбросить прогресс</button>
+      </div>
+      <p class="feedback" id="formulaFeedback"></p>
+    </section>
+
+    <!-- ===== Режим: названия (формула → название) ===== -->
+    <section class="view quiz" id="viewNames" hidden>
+      <p class="quiz__meta" id="namesMeta">Задача 0 · Верно 0 · Ошибок 0</p>
+      <div class="quiz__card">
+        <p class="quiz__prompt">Как называется эта формула?</p>
+        <p class="quiz__caption" id="namesSection"></p>
+        <div class="quiz__symbol" id="namesFormula"></div>
+      </div>
+      <div class="options" id="namesOptions"></div>
+      <div class="quiz__row">
+        <button type="button" id="namesNext" class="btn btn--ghost">Дальше</button>
+        <button type="button" id="namesReset" class="btn btn--ghost">Сбросить прогресс</button>
+      </div>
+      <p class="feedback" id="namesFeedback"></p>
+    </section>
+
+    <!-- ===== Режим: задачи ===== -->
+    <section class="view quiz" id="viewTasks" hidden>
+      <div class="chips" id="practiceChips" role="tablist" aria-label="Разделы"></div>
+      <p class="quiz__meta" id="practiceMeta">Верно 0 · Ошибок 0</p>
       <div class="quiz__card">
         <p class="quiz__caption" id="practiceSection"></p>
         <div class="quiz__task" id="practiceTask"></div>
       </div>
-
       <div class="options" id="practiceOptions"></div>
       <div class="answer-input" id="practiceInputRow" hidden>
         <label class="answer-input__label" for="practiceInput">Ответ (целое число):</label>
         <input type="text" id="practiceInput" class="answer-input__field" inputmode="numeric"
                autocomplete="off" spellcheck="false" placeholder="Введите ответ">
       </div>
-
       <div class="quiz__row">
         <button type="button" id="practiceCheck" class="btn" hidden>Проверить</button>
         <button type="button" id="practiceNext" class="btn btn--ghost" disabled>Дальше</button>
@@ -87,7 +148,6 @@
 
     <!-- ===== Режим: экзамен ===== -->
     <section class="view" id="viewExam" hidden>
-
       <div id="examStart">
         <div class="panel">
           <h2 class="panel__title">Экзаменационный вариант</h2>
@@ -105,9 +165,7 @@
       <div id="examRun" hidden>
         <div class="exam-bar">
           <div class="timer" id="examTimer" aria-live="polite">210:00</div>
-          <div class="exam-bar__info">
-            <span id="examProgressText">Отвечено 0 из 30</span>
-          </div>
+          <div class="exam-bar__info"><span id="examProgressText">Отвечено 0 из 30</span></div>
           <button type="button" id="examFinish" class="btn btn--warn">Завершить</button>
         </div>
 
@@ -121,7 +179,6 @@
               <span class="navlegend__item"><i class="dot dot--empty"></i> без ответа</span>
             </div>
           </aside>
-
           <div class="exam-main">
             <p class="quiz__meta" id="examTaskMeta"></p>
             <div class="quiz__card">
@@ -150,16 +207,27 @@
       <div class="panel">
         <h2 class="panel__title">История попыток</h2>
         <p class="panel__text">Здесь сохраняются завершённые экзамены. Выберите попытку, чтобы увидеть
-          статистику по темам и пошаговый разбор каждого задания.</p>
+          статистику по темам и разбор каждого задания.</p>
       </div>
       <div class="history-list" id="historyList"></div>
       <div id="historyDetail"></div>
     </section>
 
-    <!-- ===== Режим: справочник ===== -->
-    <section class="view" id="viewReference" hidden>
-      <div class="chips" id="referenceChips" role="tablist" aria-label="Разделы справочника"></div>
-      <div class="formula-list" id="formulaList"></div>
+    <!-- ===== Режим: повторение (SRS) ===== -->
+    <section class="view review" id="viewReview" hidden>
+      <p class="quiz__meta" id="reviewMeta"></p>
+      <div class="review__slot" id="reviewSlot"></div>
+      <div class="review__grades" id="reviewGrades" hidden>
+        <button type="button" class="btn btn--hard" data-grade="hard">Трудно</button>
+        <button type="button" class="btn btn--good" data-grade="good">Нормально</button>
+        <button type="button" class="btn btn--easy" data-grade="easy">Легко</button>
+      </div>
+      <div class="review__done" id="reviewDone" hidden>
+        <p>На сегодня повторений нет.</p>
+      </div>
+      <div class="review__footer">
+        <button type="button" id="reviewReset" class="btn btn--ghost">Сбросить расписание повторений</button>
+      </div>
     </section>
 
     <!-- ===== Режим: графики ===== -->
@@ -167,7 +235,8 @@
       <div class="panel">
         <h2 class="panel__title">Интерактивные графики функций</h2>
         <p class="panel__text">Выберите вид функции и настройте коэффициенты — график обновится сразу.
-          Это помогает проверять свойства функций при решении заданий раздела «Координаты и функции».</p>
+          Покрыты все виды функций из спецификации: линейная, квадратичная, кубическая, гипербола,
+          корень, модуль, показательная, логарифмическая и тригонометрические.</p>
       </div>
       <div class="graph-layout">
         <div class="graph-controls">
@@ -189,9 +258,9 @@
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
           integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg"
           crossorigin="anonymous"></script>
+  <script defer src="assets/js/data/cards.js"></script>
   <script defer src="assets/js/data/tasks.js"></script>
   <script defer src="assets/js/data/rikz.js"></script>
-  <script defer src="assets/js/data/formulas.js"></script>
   <script defer src="assets/js/app.js"></script>
 </body>
 </html>
