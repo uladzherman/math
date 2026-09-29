@@ -695,18 +695,29 @@
     if (a === 0) return "x";
     return a > 0 ? "(x - " + fmtNum(a) + u + ")" : "(x + " + fmtNum(Math.abs(a)) + u + ")";
   }
+  function trigShiftArg(a, deg) {
+    if (a === 0) return "x";
+    var num = deg ? (fmtNum(Math.abs(a)) + "°") : piLabel(Math.abs(a));
+    return a > 0 ? "(x - " + num + ")" : "(x + " + num + ")";
+  }
   function trigTex(name, c) {
     var deg = c.unit === "deg";
-    var inner = (c.k === 1 ? "" : fmtNum(c.k)) + shiftX(c.a, deg);
+    var inner = (c.k === 1 ? "" : fmtNum(c.k)) + trigShiftArg(c.a, deg);
     return "y = " + mul(c.A, name + "(" + inner + ")") + add(c.b);
   }
   function transformCoefs(kindId) {
     var trig = isTrig(kindId);
     var deg = graphState.unit === "deg";
     var aSpec;
-    if (trig && deg) aSpec = { k: "a", v: 0, min: -360, max: 360, step: 15, suffix: "°", cap: "сдвиг по x" };
-    else if (trig) aSpec = { k: "a", v: 0, min: -6.5, max: 6.5, step: 0.5, cap: "сдвиг по x, рад" };
-    else aSpec = { k: "a", v: 0, min: -10, max: 10, step: 0.5, cap: "сдвиг по x" };
+    if (trig && deg) {
+      aSpec = { k: "a", v: 0, min: -360, max: 360, step: 15, cap: "сдвиг по x, °",
+        show: function (v) { return fmtNum(v) + "°"; } };
+    } else if (trig) {
+      aSpec = { k: "a", v: 0, min: -2 * Math.PI, max: 2 * Math.PI, step: Math.PI / 12, cap: "сдвиг по x, кратно π",
+        show: piLabel };
+    } else {
+      aSpec = { k: "a", v: 0, min: -10, max: 10, step: 0.5, cap: "сдвиг по x" };
+    }
     return [aSpec, { k: "b", v: 0, min: -10, max: 10, step: 0.5, cap: "сдвиг по y" }];
   }
 
@@ -777,7 +788,7 @@
       wrap.className = "coef";
       var label = document.createElement("label");
       label.className = "coef__label";
-      label.textContent = c.k + " = " + fmtNum(cur) + (c.suffix || "") + (c.cap ? "  (" + c.cap + ")" : "");
+      label.textContent = c.k + " = " + (c.show ? c.show(cur) : fmtNum(cur)) + (c.cap ? "  (" + c.cap + ")" : "");
 
       var row = document.createElement("div");
       row.className = "coef__row";
@@ -799,7 +810,7 @@
         graphState.values[prefix + c.k] = v;
         slider.value = v;
         num.value = v;
-        label.textContent = c.k + " = " + fmtNum(v) + (c.suffix || "") + (c.cap ? "  (" + c.cap + ")" : "");
+        label.textContent = c.k + " = " + (c.show ? c.show(v) : fmtNum(v)) + (c.cap ? "  (" + c.cap + ")" : "");
         drawGraph();
       }
       slider.addEventListener("input", function () { apply(slider.value, false); });
@@ -844,7 +855,7 @@
     });
     return best;
   }
-  var PI_DENS = [1, 2, 3, 4, 6];
+  var PI_DENS = [1, 2, 3, 4, 6, 12];
   function piLabel(v) {
     if (Math.abs(v) < 1e-9) return "0";
     var ratio = v / Math.PI;
@@ -953,7 +964,7 @@
     if (id === "log" && v.A !== 0) return "x = " + fmtCoord(v.a) + " (вертикальная)";
     if (id === "tangent" && v.k !== 0) {
       var deg = graphState.unit === "deg";
-      var aStr = fmtCoord(v.a) + (deg ? "°" : "");
+      var aStr = deg ? (fmtCoord(v.a) + "°") : piLabel(v.a);
       var base = deg ? "90°" : "π/2";
       var step = deg ? "180°" : "π";
       var kk = (Math.abs(Math.abs(v.k) - 1) < 1e-9) ? "" : "/" + fmtNum(Math.abs(v.k));
@@ -1015,7 +1026,13 @@
     var P2 = deg ? "360°" : "2π";
     var unit = deg ? "°" : "";
     function cstr(c) { var cv = deg ? c * 180 / Math.PI : c; return fmtCoord(cv) + unit; }
-    var head = (Math.abs(a) < 1e-9) ? "" : (fmtCoord(a) + unit + " + ");
+    var aStr;
+    if (Math.abs(a) < 1e-9) aStr = "";
+    else {
+      var mag = deg ? (fmtNum(Math.abs(a)) + "°") : piLabel(Math.abs(a));
+      aStr = (a < 0 ? "−" + mag : mag) + " + ";
+    }
+    var head = aStr;
     var slash = (Math.abs(Math.abs(k) - 1) < 1e-9) ? "" : "/" + fmtNum(Math.abs(k));
     if (id === "sine") {
       var c = Math.asin(t);
