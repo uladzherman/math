@@ -665,7 +665,7 @@
   }
 
   var GRAPH_BASE_RANGE = 10;
-  var graphState = { kind: GRAPH_KINDS[0].id, values: {}, center: { x: 0, y: 0 }, wpp: (2 * GRAPH_BASE_RANGE) / 640, rangeX: GRAPH_BASE_RANGE, zoom: 1, absX: false, absY: false };
+  var graphState = { kind: GRAPH_KINDS[0].id, values: {}, center: { x: 0, y: 0 }, wpp: (2 * GRAPH_BASE_RANGE) / 640, rangeX: GRAPH_BASE_RANGE, zoom: 1, absX: false, absY: false, unit: "rad" };
   function graphKind() {
     var found = GRAPH_KINDS[0];
     GRAPH_KINDS.forEach(function (g) { if (g.id === graphState.kind) found = g; });
@@ -786,6 +786,31 @@
     var dec = Math.max(0, -Math.floor(Math.log10(step)));
     return v.toFixed(dec).replace(".", ",");
   }
+  function pickStep(candidates, span) {
+    var best = candidates[candidates.length - 1], bestScore = Infinity;
+    candidates.forEach(function (s) {
+      var n = span / s;
+      var score = Math.abs(n - 8);
+      if (n >= 4 && n <= 14 && score < bestScore) { bestScore = score; best = s; }
+    });
+    return best;
+  }
+  var PI_DENS = [1, 2, 3, 4, 6];
+  function piLabel(v) {
+    if (Math.abs(v) < 1e-9) return "0";
+    var ratio = v / Math.PI;
+    for (var i = 0; i < PI_DENS.length; i++) {
+      var q = PI_DENS[i], p = Math.round(ratio * q);
+      if (p !== 0 && Math.abs(ratio - p / q) < 1e-3) {
+        var sign = p < 0 ? "−" : "";
+        var ap = Math.abs(p);
+        var num = ap === 1 ? "π" : ap + "π";
+        return sign + (q === 1 ? num : num + "/" + q);
+      }
+    }
+    return fmtNum(Math.round(v * 100) / 100);
+  }
+  function isTrig(kind) { return kind === "sine" || kind === "cosine" || kind === "tangent"; }
   function fmtCoord(v) { return String(Math.round(v * 100) / 100).replace(".", ","); }
 
   /* ============ Свойства функции ============ */
@@ -883,8 +908,15 @@
   function periodText(id, v) {
     if (v.k === 0) return null;
     var ak = Math.abs(v.k);
-    if (id === "sine" || id === "cosine") return ak === 1 ? "2π" : ("2π/" + fmtNum(ak) + " ≈ " + fmtCoord(2 * Math.PI / ak));
-    if (id === "tangent") return ak === 1 ? "π" : ("π/" + fmtNum(ak) + " ≈ " + fmtCoord(Math.PI / ak));
+    var deg = graphState.unit === "deg";
+    if (id === "sine" || id === "cosine") {
+      if (deg) return ak === 1 ? "360°" : ("360°/" + fmtNum(ak) + " ≈ " + fmtCoord(360 / ak) + "°");
+      return ak === 1 ? "2π" : ("2π/" + fmtNum(ak) + " ≈ " + fmtCoord(2 * Math.PI / ak));
+    }
+    if (id === "tangent") {
+      if (deg) return ak === 1 ? "180°" : ("180°/" + fmtNum(ak) + " ≈ " + fmtCoord(180 / ak) + "°");
+      return ak === 1 ? "π" : ("π/" + fmtNum(ak) + " ≈ " + fmtCoord(Math.PI / ak));
+    }
     return null;
   }
   function monotonicText(id, v) {
@@ -964,8 +996,8 @@
     var padR = parseFloat(cs.paddingRight) || 0;
     var cssW = Math.floor(wrapEl.clientWidth - padL - padR);
     if (cssW <= 0) cssW = Math.min(720, Math.max(280, (window.innerWidth || 640) - 60));
-    var cssH = Math.round(cssW * 0.72);
-    if (cssH < 240) cssH = 240;
+    var cssH = Math.round(cssW * (view.aspect || 0.72));
+    if (cssH < 200) cssH = 200;
     var dpr = window.devicePixelRatio || 1;
     canvas.width = Math.round(cssW * dpr);
     canvas.height = Math.round(cssH * dpr);
@@ -988,18 +1020,31 @@
 
     ctx.clearRect(0, 0, W, H);
 
-    var step = niceStep(rangeX);
-    var k0 = Math.ceil((cx - rangeX) / step), k1 = Math.floor((cx + rangeX) / step);
-    var j0 = Math.ceil((cy - rangeY) / step), j1 = Math.floor((cy + rangeY) / step);
+    var stepX, labelX;
+    if (view.trig && view.unit === "deg") {
+      var degSpan = 2 * rangeX * 180 / Math.PI;
+      var stepDeg = pickStep([15, 30, 45, 90, 180, 360], degSpan);
+      stepX = stepDeg * Math.PI / 180;
+      labelX = function (val) { return String(Math.round(val * 180 / Math.PI)) + "°"; };
+    } else if (view.trig) {
+      stepX = pickStep([Math.PI / 6, Math.PI / 4, Math.PI / 2, Math.PI, 2 * Math.PI], 2 * rangeX);
+      labelX = piLabel;
+    } else {
+      stepX = niceStep(rangeX);
+      labelX = function (val) { return fmtTick(val, stepX); };
+    }
+    var stepY = niceStep(rangeY);
+    var k0 = Math.ceil((cx - rangeX) / stepX), k1 = Math.floor((cx + rangeX) / stepX);
+    var j0 = Math.ceil((cy - rangeY) / stepY), j1 = Math.floor((cy + rangeY) / stepY);
 
     ctx.strokeStyle = colBorder;
     ctx.lineWidth = 1;
     for (var k = k0; k <= k1; k++) {
-      var X = xToPx(k * step);
+      var X = xToPx(k * stepX);
       ctx.beginPath(); ctx.moveTo(X, 0); ctx.lineTo(X, H); ctx.stroke();
     }
     for (var j = j0; j <= j1; j++) {
-      var Y = yToPx(j * step);
+      var Y = yToPx(j * stepY);
       ctx.beginPath(); ctx.moveTo(0, Y); ctx.lineTo(W, Y); ctx.stroke();
     }
 
@@ -1015,14 +1060,14 @@
     if (axisY >= 0 && axisY <= H) {
       for (var lk = k0; lk <= k1; lk++) {
         if (lk === 0) continue;
-        ctx.fillText(fmtTick(lk * step, step), xToPx(lk * step), axisY + 4);
+        ctx.fillText(labelX(lk * stepX), xToPx(lk * stepX), axisY + 4);
       }
     }
     ctx.textAlign = "right"; ctx.textBaseline = "middle";
     if (axisX >= 0 && axisX <= W) {
       for (var lj = j0; lj <= j1; lj++) {
         if (lj === 0) continue;
-        ctx.fillText(fmtTick(lj * step, step), axisX - 5, yToPx(lj * step));
+        ctx.fillText(fmtTick(lj * stepY, stepY), axisX - 5, yToPx(lj * stepY));
       }
     }
     ctx.textAlign = "right"; ctx.textBaseline = "top";
@@ -1072,6 +1117,8 @@
       rangeX: graphState.rangeX,
       absX: graphState.absX,
       absY: graphState.absY,
+      trig: isTrig(g.id),
+      unit: graphState.unit,
       markerX: graphState.cursorX
     });
     graphState.wpp = (2 * graphState.rangeX) / (W || 640);
@@ -1183,11 +1230,52 @@
     if ((id === "expo" || id === "log") && v.k === 1) v.k = 2;
     return v;
   }
+  function readRangeFor(id) {
+    if (id === "sine" || id === "cosine") return Math.PI;
+    if (id === "tangent") return Math.PI * 0.75;
+    if (id === "expo" || id === "log") return 5;
+    if (id === "hyper") return 6;
+    if (id === "quad" || id === "cubic") return 4;
+    return 5;
+  }
+  function readHintText(id, v) {
+    var map = {
+      line: "Прямая линия. Угловой коэффициент k = " + fmtNum(v.k) + ".",
+      quad: "Парабола, ветви " + (v.k > 0 ? "вверх" : "вниз") + ".",
+      cubic: "Кубическая парабола (S-образная линия).",
+      hyper: "Видна характерная гипербола: ветви не пересекают оси.",
+      sqrt: "Это ветвь графика корня — начинается в точке (0; 0).",
+      abs: "«Уголок» с вершиной в начале координат.",
+      expo: "Кривая растёт всё быстрее — показательная функция.",
+      log: "Медленно растущая кривая — логарифмическая функция.",
+      sine: "Периодическая волна — синусоида.",
+      cosine: "Периодическая волна с максимумом при x = 0 — косинусоида.",
+      tangent: "Ветви, уходящие вверх и вниз, — тангенсоида."
+    };
+    var parity = {
+      line: (v.b === 0 && v.a === 0 ? "Нечётная функция." : ""),
+      quad: "Чётная функция.",
+      abs: "Чётная функция.",
+      cosine: "Чётная функция.",
+      sine: "Нечётная функция.",
+      cubic: "Нечётная функция.",
+      hyper: "Нечётная функция."
+    }[id];
+    var t = map[id] || "Определите функцию по форме графика.";
+    if (parity) t += " " + parity;
+    return t;
+  }
+  function showReadHint() {
+    var el = byId("readHint");
+    if (!el || !read.current) return;
+    el.textContent = readHintText(read.current.id, read.current.vals);
+    el.hidden = false;
+  }
   function readNewTask() {
     var id = READ_KINDS[randInt(0, READ_KINDS.length - 1)];
     var g = kindById(id);
     var vals = readRandomVals(id, g);
-    read.current = { g: g, vals: vals };
+    read.current = { id: id, g: g, vals: vals, rangeX: readRangeFor(id) };
     read.answered = false;
 
     var correct = g.tex(vals);
@@ -1213,10 +1301,16 @@
     window.requestAnimationFrame(function () { fitOptions(byId("readOptions")); });
 
     resetFeedback("readFeedback");
+    var hint = byId("readHint");
+    hint.textContent = "";
+    hint.hidden = true;
     readMeta();
     var canvas = byId("readCanvas");
     window.requestAnimationFrame(function () {
-      paintGraph(canvas, read.current.g, read.current.vals, { centerX: 0, centerY: 0, rangeX: 10, absX: false, absY: false });
+      paintGraph(canvas, read.current.g, read.current.vals, {
+        centerX: 0, centerY: 0, rangeX: read.current.rangeX,
+        absX: false, absY: false, trig: isTrig(id), unit: graphState.unit, aspect: 0.6
+      });
     });
   }
   function readMeta() {
@@ -1230,6 +1324,7 @@
     state.stats[ok ? "readOk" : "readBad"]++;
     save(LS.stats, state.stats);
     answerOption(byId("readOptions"), btn, ok, byId("readFeedback"));
+    if (!ok) showReadHint();
     readMeta();
   }
   function readNext() { readNewTask(); }
@@ -1384,6 +1479,7 @@
   function init() {
     buildChips();
     buildGraphControls();
+    if (byId("graphUnit")) byId("graphUnit").value = graphState.unit;
     renderBrowse();
     updateProgress();
     updateDueBadge();
@@ -1474,6 +1570,11 @@
       graphState.absX = byId("graphAbsX").checked;
       drawGraph();
     });
+    if (byId("graphUnit")) byId("graphUnit").addEventListener("change", function () {
+      graphState.unit = byId("graphUnit").value;
+      drawGraph();
+    });
+    if (byId("readHintBtn")) byId("readHintBtn").addEventListener("click", showReadHint);
 
     setupGraphPan();
 
