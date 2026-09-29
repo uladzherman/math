@@ -1690,11 +1690,21 @@
     }
 
     var headerEl = document.querySelector(".site-header");
+    var compact = false, scrollTick = false;
+    function applyScroll() {
+      scrollTick = false;
+      if (!headerEl) return;
+      var y = window.scrollY || window.pageYOffset || 0;
+      if (!compact && y > 90) { compact = true; headerEl.classList.add("is-compact"); }
+      else if (compact && y < 40) { compact = false; headerEl.classList.remove("is-compact"); }
+    }
     function onScroll() {
-      if (headerEl) headerEl.classList.toggle("is-compact", (window.scrollY || 0) > 30);
+      if (scrollTick) return;
+      scrollTick = true;
+      window.requestAnimationFrame(applyScroll);
     }
     window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
+    applyScroll();
   }
 
   init();

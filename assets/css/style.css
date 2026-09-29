@@ -374,14 +374,21 @@ main { padding: 1.5rem 0 4rem; }
 }
 
 /* ===== Компактная шапка при прокрутке ===== */
-.site-header { transition: padding 0.2s ease; }
-.site-header h1 { transition: font-size 0.2s ease; }
-.site-header .subtitle { transition: opacity 0.2s ease; }
-.site-header.is-compact { padding: 0.55rem 0 0.45rem; }
+html, body { overflow-anchor: none; }
+.site-header { transition: padding 0.28s ease; }
+.site-header h1 { transition: font-size 0.28s ease; }
+.site-header .subtitle {
+  overflow: hidden; max-height: 3.2rem;
+  transition: max-height 0.28s ease, margin 0.28s ease, opacity 0.28s ease;
+}
+.site-header .tabs { transition: padding-bottom 0.28s ease; }
+.site-header .progress { max-height: 1.4rem; transition: max-height 0.28s ease, opacity 0.28s ease, padding 0.28s ease; }
+.site-header .social-icon { transition: width 0.28s ease, height 0.28s ease, color 0.15s, background 0.15s; }
+.site-header.is-compact { padding: 0.6rem 0 0.5rem; }
 .site-header.is-compact h1 { font-size: 1.05rem; }
-.site-header.is-compact .subtitle { display: none; }
+.site-header.is-compact .subtitle { max-height: 0; margin: 0; opacity: 0; }
 .site-header.is-compact .tabs { padding-bottom: 0.45rem; }
-.site-header.is-compact .progress { display: none; }
+.site-header.is-compact .progress { max-height: 0; opacity: 0; overflow: hidden; padding: 0; }
 .site-header.is-compact .social-icon { width: 36px; height: 36px; }
 
 @media (max-width: 620px) {
