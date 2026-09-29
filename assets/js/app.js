@@ -1069,11 +1069,16 @@
     var cs = getComputedStyle(wrapEl);
     var padL = parseFloat(cs.paddingLeft) || 0;
     var padR = parseFloat(cs.paddingRight) || 0;
-    var cssW = Math.floor(wrapEl.clientWidth - padL - padR);
-    if (cssW <= 0) cssW = Math.min(720, Math.max(280, (window.innerWidth || 640) - 60));
-    var cssH = Math.round(cssW * (view.aspect || 0.72));
-    var minH = (window.innerWidth <= 620) ? 250 : 200;
-    if (cssH < minH) cssH = minH;
+    var availW = Math.floor(wrapEl.clientWidth - padL - padR);
+    if (availW <= 0) availW = Math.min(720, Math.max(280, (window.innerWidth || 640) - 60));
+    var aspect = view.aspect || 0.72;
+    var minH = (window.innerWidth <= 620) ? 240 : 200;
+    var maxH = (window.innerHeight || 800) - (window.innerWidth <= 620 ? 200 : 250);
+    maxH = Math.max(minH, Math.min(600, maxH));
+    var cssW = availW;
+    var cssH = Math.round(cssW * aspect);
+    if (cssH > maxH) { cssH = maxH; cssW = Math.min(availW, Math.round(cssH / aspect)); }
+    if (cssH < minH) { cssH = minH; cssW = Math.min(availW, Math.round(cssH / aspect)); }
     var dpr = window.devicePixelRatio || 1;
     canvas.width = Math.round(cssW * dpr);
     canvas.height = Math.round(cssH * dpr);
