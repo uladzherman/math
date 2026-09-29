@@ -994,6 +994,7 @@
   function trigZerosText(id, v) {
     var A = v.A, k = v.k, a = v.a, b = v.b;
     if (A === 0) return b === 0 ? "вся числовая прямая" : "нет корней";
+    if (Math.abs(k) < 1e-9) return b === 0 ? "вся числовая прямая" : "нет корней";
     var t = -b / A;
     if (Math.abs(t) > 1) return "нет корней (|−b/A| > 1)";
     var deg = graphState.unit === "deg";
@@ -1001,21 +1002,21 @@
     var P2 = deg ? "360°" : "2π";
     var unit = deg ? "°" : "";
     function cstr(c) { var cv = deg ? c * 180 / Math.PI : c; return fmtCoord(cv) + unit; }
-    var base = (Math.abs(a) < 1e-9) ? "" : (a > 0 ? " + " + fmtCoord(a) : " − " + fmtCoord(Math.abs(a)));
-    var denom = (Math.abs(Math.abs(k) - 1) < 1e-9) ? "" : "/" + fmtNum(Math.abs(k));
+    var head = (Math.abs(a) < 1e-9) ? "" : (fmtCoord(a) + " + ");
+    var slash = (Math.abs(Math.abs(k) - 1) < 1e-9) ? "" : "/" + fmtNum(Math.abs(k));
     if (id === "sine") {
       var c = Math.asin(t);
-      if (Math.abs(c) < 1e-9) return "x =" + (base || " ") + " " + P + "n" + denom + ",  n ∈ ℤ";
-      return "x =" + (base || " ") + " ((−1)ⁿ·" + cstr(c) + " + " + P + "n)" + denom + ",  n ∈ ℤ";
+      if (Math.abs(c) < 1e-9) return "x = " + head + P + "n" + slash + ",  n ∈ ℤ";
+      return "x = " + head + "((−1)ⁿ·" + cstr(c) + " + " + P + "n)" + slash + ",  n ∈ ℤ";
     }
     if (id === "cosine") {
       var c2 = Math.acos(t);
-      return "x =" + (base || " ") + " (±" + cstr(c2) + " + " + P2 + "n)" + denom + ",  n ∈ ℤ";
+      return "x = " + head + "(±" + cstr(c2) + " + " + P2 + "n)" + slash + ",  n ∈ ℤ";
     }
     if (id === "tangent") {
       var c3 = Math.atan(t);
-      if (Math.abs(c3) < 1e-9) return "x =" + (base || " ") + " " + P + "n" + denom + ",  n ∈ ℤ";
-      return "x =" + (base || " ") + " (" + cstr(c3) + " + " + P + "n)" + denom + ",  n ∈ ℤ";
+      if (Math.abs(c3) < 1e-9) return "x = " + head + P + "n" + slash + ",  n ∈ ℤ";
+      return "x = " + head + "(" + cstr(c3) + " + " + P + "n)" + slash + ",  n ∈ ℤ";
     }
     return null;
   }
