@@ -44,6 +44,8 @@
         <button type="button" class="tab" data-mode="match">Соответствие</button>
         <button type="button" class="tab" data-mode="formulas">Формулы</button>
         <button type="button" class="tab" data-mode="names">Названия</button>
+        <button type="button" class="tab" data-mode="calc">Счёт</button>
+        <button type="button" class="tab" data-mode="read">Чтение графиков</button>
         <button type="button" class="tab" data-mode="review">Повторение <span class="tab__count" id="dueCount">0</span></button>
         <button type="button" class="tab" data-mode="graph">Графики</button>
       </nav>
@@ -117,6 +119,51 @@
       <p class="feedback" id="namesFeedback"></p>
     </section>
 
+    <!-- ===== Режим: устный счёт ===== -->
+    <section class="view quiz" id="viewCalc" hidden>
+      <div id="calcStart">
+        <div class="panel">
+          <h2 class="panel__title">Устный счёт</h2>
+          <p class="panel__text">Тренажёр быстрого счёта: 60 секунд, как можно больше верных ответов.
+            Сложение, вычитание, умножение, деление, степени, корни, проценты и дроби.</p>
+          <div class="score-card">
+            <div class="score-box">
+              <div class="score-box__label">Рекорд</div>
+              <div class="score-box__val" id="calcBest">0</div>
+              <div class="score-box__hint">верных за минуту</div>
+            </div>
+          </div>
+          <button type="button" id="calcStartBtn" class="btn">Начать (60 секунд)</button>
+        </div>
+      </div>
+      <div id="calcRun" hidden>
+        <div class="exam-bar">
+          <div class="timer" id="calcTimer">60</div>
+          <div class="exam-bar__info"><span id="calcMeta">Верно 0 · Ошибок 0</span></div>
+          <button type="button" id="calcStop" class="btn btn--warn">Стоп</button>
+        </div>
+        <div class="quiz__card"><div class="quiz__task" id="calcTask"></div></div>
+        <div class="options options--inline" id="calcOptions"></div>
+        <p class="feedback" id="calcFeedback"></p>
+      </div>
+      <div id="calcResult" hidden></div>
+    </section>
+
+    <!-- ===== Режим: чтение графиков ===== -->
+    <section class="view quiz" id="viewRead" hidden>
+      <p class="quiz__meta" id="readMeta">Задача 0 · Верно 0 · Ошибок 0</p>
+      <div class="quiz__card">
+        <p class="quiz__prompt">График какой функции изображён на рисунке?</p>
+        <div class="graph-canvas-wrap"><canvas id="readCanvas" width="520" height="360"></canvas></div>
+      </div>
+      <div class="options" id="readOptions"></div>
+      <div class="quiz__row">
+        <button type="button" id="readNext" class="btn btn--ghost">Дальше</button>
+        <button type="button" id="readReset" class="btn btn--ghost">Сбросить прогресс</button>
+      </div>
+      <p class="feedback" id="readFeedback"></p>
+    </section>
+
     <!-- ===== Режим: повторение (SRS) ===== -->
     <section class="view review" id="viewReview" hidden>
       <p class="quiz__meta" id="reviewMeta"></p>
@@ -155,6 +202,10 @@
             <span class="field__label">Масштаб: <b id="graphZoomVal">×1</b></span>
             <input type="range" id="graphZoom" min="0.2" max="6" step="0.1" value="1">
           </label>
+          <div class="checks">
+            <label class="check"><input type="checkbox" id="graphAbsY"> преобразование |f(x)|</label>
+            <label class="check"><input type="checkbox" id="graphAbsX"> преобразование f(|x|)</label>
+          </div>
           <button type="button" id="graphReset" class="btn btn--ghost">Сбросить коэффициенты и вид</button>
           <p class="graph-formula" id="graphFormula"></p>
         </div>

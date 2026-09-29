@@ -306,3 +306,38 @@ main { padding: 1.5rem 0 4rem; }
   .site-header { padding: 1rem 0 0.6rem; }
   .tab { padding: 0.45rem 0.75rem; font-size: 0.84rem; }
 }
+
+/* ===== Устный счёт и служебные блоки ===== */
+.exam-bar {
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 0.85rem 1.1rem;
+  box-shadow: var(--shadow); margin-bottom: 1.1rem;
+}
+.timer { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent); }
+.timer.is-critical { color: var(--bad); }
+.exam-bar__info { flex: 1; color: var(--muted); font-size: 0.9rem; }
+
+.score-card { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.8rem; margin-bottom: 1.1rem; }
+.score-box {
+  border: 1px solid var(--border); border-radius: 14px; padding: 0.9rem 1rem;
+  background: var(--bg-soft); box-shadow: var(--shadow);
+}
+.score-box__label { font-size: 0.8rem; color: var(--muted); }
+.score-box__val { font-size: 1.7rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.score-box__hint { font-size: 0.78rem; color: var(--muted); }
+
+.options--inline { grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); }
+.options--inline .option { justify-content: center; font-variant-numeric: tabular-nums; }
+
+.checks { display: grid; gap: 0.4rem; }
+.check { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--muted); cursor: pointer; }
+.check input { width: 1rem; height: 1rem; accent-color: var(--accent); }
+
+.solution {
+  background: var(--accent-soft); border: 1px solid var(--border);
+  border-left: 4px solid var(--accent); border-radius: 12px;
+  padding: 0.9rem 1.1rem; margin-top: 0.5rem;
+}
+.solution__title { margin: 0 0 0.35rem; font-weight: 700; font-size: 0.9rem; color: var(--accent); }
+.solution__body { line-height: 1.7; overflow-x: auto; }

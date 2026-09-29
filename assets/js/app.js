@@ -92,7 +92,7 @@
     });
   }
 
-  var STAT_KEYS = ["matchOk", "matchBad", "formulaOk", "formulaBad", "namesOk", "namesBad"];
+  var STAT_KEYS = ["matchOk", "matchBad", "formulaOk", "formulaBad", "namesOk", "namesBad", "readOk", "readBad"];
   var state = {
     mode: "cards",
     section: "all",
@@ -203,6 +203,17 @@
 
     var actions = document.createElement("div");
     actions.className = "card__actions";
+    if (card.g && !opts.review) {
+      var gbtn = document.createElement("button");
+      gbtn.type = "button";
+      gbtn.className = "known-btn";
+      gbtn.textContent = "Построить график";
+      gbtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        openGraphKind(card.g);
+      });
+      actions.appendChild(gbtn);
+    }
     if (!opts.review) {
       var knownBtn = document.createElement("button");
       knownBtn.type = "button";
@@ -654,7 +665,7 @@
   }
 
   var GRAPH_BASE_RANGE = 10;
-  var graphState = { kind: GRAPH_KINDS[0].id, values: {}, center: { x: 0, y: 0 }, wpp: (2 * GRAPH_BASE_RANGE) / 640, rangeX: GRAPH_BASE_RANGE, zoom: 1 };
+  var graphState = { kind: GRAPH_KINDS[0].id, values: {}, center: { x: 0, y: 0 }, wpp: (2 * GRAPH_BASE_RANGE) / 640, rangeX: GRAPH_BASE_RANGE, zoom: 1, absX: false, absY: false };
   function graphKind() {
     var found = GRAPH_KINDS[0];
     GRAPH_KINDS.forEach(function (g) { if (g.id === graphState.kind) found = g; });
@@ -784,15 +795,15 @@
   }
   function findZeros(g, v, x0, x1) {
     var zs = [], n = 600;
-    var prevX = x0, prevY = graphEval(g, v, x0), pf = isFinite(prevY);
+    var prevX = x0, prevY = graphValue(g, v, x0), pf = isFinite(prevY);
     for (var i = 1; i <= n; i++) {
-      var x = x0 + (x1 - x0) * i / n, y = graphEval(g, v, x);
+      var x = x0 + (x1 - x0) * i / n, y = graphValue(g, v, x);
       if (pf && isFinite(y)) {
         if (prevY === 0) zs.push(prevX);
         else if (prevY * y < 0) {
           var lo = prevX, hi = x, flo = prevY;
           for (var b = 0; b < 50; b++) {
-            var m = (lo + hi) / 2, fm = graphEval(g, v, m);
+            var m = (lo + hi) / 2, fm = graphValue(g, v, m);
             if (!isFinite(fm)) break;
             if (flo * fm <= 0) hi = m; else { lo = m; flo = fm; }
           }
@@ -809,7 +820,7 @@
     var even = true, odd = true, n = 0;
     for (var i = 1; i <= 60; i++) {
       var x = i * 0.2;
-      var fp = graphEval(g, v, x), fm = graphEval(g, v, -x);
+      var fp = graphValue(g, v, x), fm = graphValue(g, v, -x);
       if (!isFinite(fp) || !isFinite(fm)) continue;
       n++;
       if (Math.abs(fp - fm) > 1e-6) even = false;
@@ -916,12 +927,16 @@
     var rx = graphState.rangeX;
     var zs = findZeros(g, v, graphState.center.x - rx, graphState.center.x + rx);
     rows.push(["Нули функции", zs.length ? zs.slice(0, 8).map(fmtCoord).join(";  ") + (zs.length > 8 ? "  …" : "") : "нет на видимом промежутке"]);
-    var y0 = graphEval(g, v, 0);
+    var y0 = graphValue(g, v, 0);
     rows.push(["Пересечение с осью Oy", isFinite(y0) ? "(0; " + fmtCoord(y0) + ")" : "нет"]);
     var ext = extremumText(g.id, v); if (ext) rows.push(["Экстремум", ext]);
     var asy = asymptoteText(g.id, v); if (asy) rows.push(["Асимптоты", asy]);
     var per = periodText(g.id, v); if (per) rows.push(["Период", per]);
     var mono = monotonicText(g.id, v); if (mono) rows.push(["Монотонность", mono]);
+    var tr = [];
+    if (graphState.absY) tr.push("|f(x)|");
+    if (graphState.absX) tr.push("f(|x|)");
+    if (tr.length) rows.push(["Дополнительные преобразования", tr.join(", ") + " поверх графика"]);
     rows.forEach(function (r) {
       var li = document.createElement("li");
       var b = document.createElement("b");
@@ -932,8 +947,17 @@
     });
   }
 
-  function drawGraph() {
-    var canvas = byId("graphCanvas");
+  function evalAt(g, v, x, absX, absY) {
+    var arg = absX ? Math.abs(x) : x;
+    var y = graphEval(g, v, arg);
+    if (absY && isFinite(y)) y = Math.abs(y);
+    return y;
+  }
+  function graphValue(g, v, x) {
+    return evalAt(g, v, x, graphState.absX, graphState.absY);
+  }
+
+  function paintGraph(canvas, g, v, view) {
     var wrapEl = canvas.parentNode;
     var cs = getComputedStyle(wrapEl);
     var padL = parseFloat(cs.paddingLeft) || 0;
@@ -948,15 +972,14 @@
     canvas.style.width = cssW + "px";
     canvas.style.height = cssH + "px";
     var ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) return cssW;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     var W = cssW, H = cssH;
-    var rangeX = graphState.rangeX;
+    var rangeX = view.rangeX;
     var rangeY = rangeX * (H / W);
-    var cx = graphState.center.x, cy = graphState.center.y;
+    var cx = view.centerX, cy = view.centerY;
     var xToPx = function (x) { return W / 2 + (x - cx) * (W / (2 * rangeX)); };
     var yToPx = function (y) { return H / 2 - (y - cy) * (H / (2 * rangeY)); };
-    graphState.wpp = (2 * rangeX) / W;
 
     var css = getComputedStyle(document.body);
     var colMuted = css.getPropertyValue("--muted").trim() || "#6b7488";
@@ -1005,8 +1028,6 @@
     ctx.textAlign = "right"; ctx.textBaseline = "top";
     ctx.fillText("0", axisX - 3, axisY + 3);
 
-    var g = graphKind();
-    var vals = currentValues();
     ctx.strokeStyle = colAccent;
     ctx.lineWidth = 2.5;
     ctx.lineJoin = "round";
@@ -1014,8 +1035,7 @@
     var started = false;
     for (var px = 0; px <= W; px += 1) {
       var x = cx + (px - W / 2) * (2 * rangeX) / W;
-      var y;
-      try { y = g.ev(x, vals); } catch (e) { y = NaN; }
+      var y = evalAt(g, v, x, view.absX, view.absY);
       if (y === null || isNaN(y) || !isFinite(y) || y < cy - rangeY * 3 || y > cy + rangeY * 3) {
         started = false;
         continue;
@@ -1026,9 +1046,9 @@
     }
     ctx.stroke();
 
-    if (graphState.cursorX !== undefined) {
-      var mx = graphState.cursorX, my;
-      try { my = g.ev(mx, vals); } catch (e) { my = NaN; }
+    if (view.markerX !== undefined && view.markerX !== null) {
+      var mx = view.markerX;
+      var my = evalAt(g, v, mx, view.absX, view.absY);
       if (isFinite(my)) {
         var mpx = xToPx(mx), mpy = yToPx(my);
         ctx.fillStyle = colAccent;
@@ -1040,7 +1060,21 @@
         ctx.setLineDash([]);
       }
     }
+    return W;
+  }
 
+  function drawGraph() {
+    var g = graphKind();
+    var vals = currentValues();
+    var W = paintGraph(byId("graphCanvas"), g, vals, {
+      centerX: graphState.center.x,
+      centerY: graphState.center.y,
+      rangeX: graphState.rangeX,
+      absX: graphState.absX,
+      absY: graphState.absY,
+      markerX: graphState.cursorX
+    });
+    graphState.wpp = (2 * graphState.rangeX) / (W || 640);
     appendRich(byId("graphFormula"), "$" + g.tex(vals) + "$");
     renderGraphProps(g, vals);
     updateReadout();
@@ -1055,8 +1089,8 @@
     }
     var g = graphKind();
     var vals = currentValues();
-    var x = graphState.cursorX, y;
-    try { y = g.ev(x, vals); } catch (e) { y = NaN; }
+    var x = graphState.cursorX;
+    var y = graphValue(g, vals, x);
     var yText = (y === null || isNaN(y) || !isFinite(y)) ? "не определена" : fmtCoord(y);
     el.textContent = "Точка на графике:  x = " + fmtCoord(x) + ",  y = " + yText;
   }
@@ -1116,6 +1150,202 @@
     }, { passive: false });
   }
 
+  /* ============ Связь карточка → график ============ */
+  function openGraphKind(kind) {
+    graphState.kind = kind;
+    graphState.cursorX = undefined;
+    var sel = byId("graphKind");
+    if (sel) sel.value = kind;
+    buildGraphCoefs();
+    setMode("graph");
+  }
+
+  /* ============ Чтение графиков ============ */
+  var READ_KINDS = ["line", "quad", "abs", "hyper", "sqrt", "expo", "log", "sine", "cosine", "cubic"];
+  var read = { answered: false, current: null };
+
+  function randInt(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+  function kindById(id) {
+    var found = GRAPH_KINDS[0];
+    GRAPH_KINDS.forEach(function (g) { if (g.id === id) found = g; });
+    return found;
+  }
+  function readRandCoef(c) {
+    var choices = [];
+    for (var x = c.min; x <= c.max + 1e-9; x += c.step) choices.push(Math.round(x * 100) / 100);
+    var nz = choices.filter(function (x) { return x !== 0; });
+    return (nz.length ? nz : choices)[randInt(0, (nz.length ? nz.length : choices.length) - 1)];
+  }
+  function readRandomVals(id, g) {
+    var v = {};
+    g.coefs.forEach(function (c) { v[c.k] = readRandCoef(c); });
+    v.a = 0; v.b = 0;
+    if ((id === "expo" || id === "log") && v.k === 1) v.k = 2;
+    return v;
+  }
+  function readNewTask() {
+    var id = READ_KINDS[randInt(0, READ_KINDS.length - 1)];
+    var g = kindById(id);
+    var vals = readRandomVals(id, g);
+    read.current = { g: g, vals: vals };
+    read.answered = false;
+
+    var correct = g.tex(vals);
+    var opts = [{ ok: true, text: correct }];
+    var guard = 0;
+    while (opts.length < 4 && guard < 80) {
+      guard++;
+      var gd = READ_KINDS[randInt(0, READ_KINDS.length - 1)];
+      var gg = kindById(gd);
+      var vv = readRandomVals(gd, gg);
+      var t = gg.tex(vv);
+      if (t === correct) continue;
+      if (opts.some(function (o) { return o.text === t; })) continue;
+      opts.push({ ok: false, text: t });
+    }
+    shuffle(opts);
+
+    renderOptions(byId("readOptions"), opts, function (btn, c) {
+      var span = document.createElement("span");
+      appendRich(span, wrapMath(c.text));
+      btn.appendChild(span);
+    }, function (btn, c) { readAnswer(btn, c.ok); });
+    window.requestAnimationFrame(function () { fitOptions(byId("readOptions")); });
+
+    resetFeedback("readFeedback");
+    readMeta();
+    var canvas = byId("readCanvas");
+    window.requestAnimationFrame(function () {
+      paintGraph(canvas, read.current.g, read.current.vals, { centerX: 0, centerY: 0, rangeX: 10, absX: false, absY: false });
+    });
+  }
+  function readMeta() {
+    var s = state.stats;
+    byId("readMeta").textContent = "Верно " + s.readOk + " · Ошибок " + s.readBad;
+    byId("readReset").disabled = (s.readOk + s.readBad) === 0;
+  }
+  function readAnswer(btn, ok) {
+    if (read.answered) return;
+    read.answered = true;
+    state.stats[ok ? "readOk" : "readBad"]++;
+    save(LS.stats, state.stats);
+    answerOption(byId("readOptions"), btn, ok, byId("readFeedback"));
+    readMeta();
+  }
+  function readNext() { readNewTask(); }
+
+  /* ============ Устный счёт ============ */
+  var CALC_DURATION = 60;
+  var calc = { active: false, endsAt: 0, correct: 0, wrong: 0, current: null, timerId: null };
+
+  function calcBestLoad() { return load("math-trainer-calc-v1", { best: 0 }).best; }
+  function calcBestSave(v) { save("math-trainer-calc-v1", { best: v }); }
+
+  function makeCalcTask() {
+    var t = randInt(1, 8), q, ans;
+    if (t === 1) { var a = randInt(20, 99), b = randInt(20, 99); q = "$" + a + " + " + b + "$"; ans = a + b; }
+    else if (t === 2) { var a2 = randInt(40, 99), b2 = randInt(11, a2 - 10); q = "$" + a2 + " - " + b2 + "$"; ans = a2 - b2; }
+    else if (t === 3) { var a3 = randInt(11, 25), b3 = randInt(3, 9); q = "$" + a3 + "\\cdot " + b3 + "$"; ans = a3 * b3; }
+    else if (t === 4) { var b4 = randInt(3, 12), ans4 = randInt(3, 20); q = "$" + (b4 * ans4) + " : " + b4 + "$"; ans = ans4; }
+    else if (t === 5) { var b5 = randInt(2, 5), e5 = randInt(2, 4); q = "$" + b5 + "^{" + e5 + "}$"; ans = Math.pow(b5, e5); }
+    else if (t === 6) { var n6 = randInt(4, 20); q = "$\\sqrt{" + (n6 * n6) + "}$"; ans = n6; }
+    else if (t === 7) { var p7 = [10, 20, 25, 50][randInt(0, 3)]; var base7 = randInt(2, 12) * 20; q = "$" + p7 + "\\%$ от $" + base7 + "$"; ans = base7 * p7 / 100; }
+    else { var d8 = randInt(2, 6); var base8 = d8 * randInt(3, 30); q = "$\\dfrac{1}{" + d8 + "}$ от $" + base8 + "$"; ans = base8 / d8; }
+    return { q: q, ans: ans };
+  }
+  function calcOptions(ans) {
+    var opts = [ans], guard = 0;
+    while (opts.length < 4 && guard < 80) {
+      guard++;
+      var d = ans + randInt(-9, 9);
+      if (d === ans || d < 0 || opts.indexOf(d) !== -1) continue;
+      opts.push(d);
+    }
+    return shuffle(opts);
+  }
+  function calcMeta() { byId("calcMeta").textContent = "Верно " + calc.correct + " · Ошибок " + calc.wrong; }
+  function calcNewTask() {
+    var task = makeCalcTask();
+    calc.current = { task: task, answered: false };
+    appendRich(byId("calcTask"), task.q);
+    var box = byId("calcOptions");
+    box.innerHTML = "";
+    calcOptions(task.ans).forEach(function (v) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "option";
+      b.textContent = String(v);
+      if (v === task.ans) b.dataset.correct = "1";
+      b.addEventListener("click", function () { calcAnswer(v, b); });
+      box.appendChild(b);
+    });
+    resetFeedback("calcFeedback");
+  }
+  function calcAnswer(v, btn) {
+    if (!calc.active || calc.current.answered) return;
+    calc.current.answered = true;
+    var ok = v === calc.current.task.ans;
+    if (ok) calc.correct++; else calc.wrong++;
+    var fb = byId("calcFeedback");
+    fb.textContent = ok ? "Верно!" : ("Неверно: " + calc.current.task.ans);
+    fb.className = "feedback " + (ok ? "feedback--ok" : "feedback--bad");
+    calcMeta();
+    if (calc.active) window.setTimeout(function () { if (calc.active) calcNewTask(); }, 320);
+  }
+  function calcStart() {
+    byId("calcStart").hidden = true;
+    byId("calcResult").hidden = true;
+    byId("calcRun").hidden = false;
+    calc.active = true; calc.correct = 0; calc.wrong = 0;
+    calc.endsAt = Date.now() + CALC_DURATION * 1000;
+    calcNewTask();
+    calcMeta();
+    calcTick();
+    if (calc.timerId) clearInterval(calc.timerId);
+    calc.timerId = setInterval(calcTick, 200);
+  }
+  function calcTick() {
+    var left = Math.max(0, Math.round((calc.endsAt - Date.now()) / 1000));
+    var el = byId("calcTimer");
+    el.textContent = String(left);
+    el.className = "timer" + (left <= 10 ? " is-critical" : "");
+    if (left <= 0) calcFinish();
+  }
+  function calcFinish() {
+    if (!calc.active) return;
+    calc.active = false;
+    if (calc.timerId) { clearInterval(calc.timerId); calc.timerId = null; }
+    var best = calcBestLoad();
+    if (calc.correct > best) { best = calc.correct; calcBestSave(best); }
+    byId("calcRun").hidden = true;
+    var res = byId("calcResult");
+    res.hidden = false;
+    res.innerHTML = "";
+    var panel = document.createElement("div");
+    panel.className = "panel";
+    var h = document.createElement("h2");
+    h.className = "panel__title";
+    h.textContent = "Результат: " + calc.correct + " верных";
+    var p = document.createElement("p");
+    p.className = "panel__text";
+    p.textContent = "Ошибок: " + calc.wrong + " · Рекорд: " + best;
+    var row = document.createElement("div");
+    row.className = "quiz__row";
+    var again = document.createElement("button");
+    again.type = "button"; again.className = "btn"; again.textContent = "Ещё раз";
+    again.addEventListener("click", calcStart);
+    var back = document.createElement("button");
+    back.type = "button"; back.className = "btn btn--ghost"; back.textContent = "К началу";
+    back.addEventListener("click", function () {
+      res.hidden = true;
+      byId("calcStart").hidden = false;
+      byId("calcBest").textContent = calcBestLoad();
+    });
+    row.appendChild(again); row.appendChild(back);
+    panel.appendChild(h); panel.appendChild(p); panel.appendChild(row);
+    res.appendChild(panel);
+  }
+
   /* ============ Переключение режимов ============ */
   function setMode(mode) {
     state.mode = mode;
@@ -1126,6 +1356,8 @@
     byId("viewMatch").hidden = mode !== "match";
     byId("viewFormulas").hidden = mode !== "formulas";
     byId("viewNames").hidden = mode !== "names";
+    byId("viewCalc").hidden = mode !== "calc";
+    byId("viewRead").hidden = mode !== "read";
     byId("viewReview").hidden = mode !== "review";
     byId("viewGraph").hidden = mode !== "graph";
     byId("progress").style.display = mode === "cards" ? "" : "none";
@@ -1134,6 +1366,15 @@
     else if (mode === "match") matchNewRound();
     else if (mode === "formulas") { if (!state.formula.order.length) formulaNewOrder(); formulaRender(); }
     else if (mode === "names") { if (!state.names.order.length) namesNewOrder(); namesRender(); }
+    else if (mode === "calc") {
+      if (!calc.active) {
+        byId("calcStart").hidden = false;
+        byId("calcRun").hidden = true;
+        byId("calcResult").hidden = true;
+        byId("calcBest").textContent = calcBestLoad();
+      }
+    }
+    else if (mode === "read") readNewTask();
     else if (mode === "review") renderReview();
     else if (mode === "graph") window.requestAnimationFrame(drawGraph);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1201,12 +1442,36 @@
       updateDueBadge(); renderReview();
     });
 
+    byId("readNext").addEventListener("click", readNext);
+    byId("readReset").addEventListener("click", function () {
+      if ((state.stats.readOk + state.stats.readBad) === 0) return;
+      if (!window.confirm("Сбросить прогресс в режиме «Чтение графиков»?")) return;
+      state.stats.readOk = 0; state.stats.readBad = 0;
+      save(LS.stats, state.stats);
+      readMeta();
+    });
+
+    byId("calcStartBtn").addEventListener("click", calcStart);
+    byId("calcStop").addEventListener("click", calcFinish);
+
     byId("graphReset").addEventListener("click", function () {
       graphState.values = {};
       graphState.center = { x: 0, y: 0 };
       graphState.cursorX = undefined;
+      graphState.absX = false;
+      graphState.absY = false;
+      if (byId("graphAbsX")) byId("graphAbsX").checked = false;
+      if (byId("graphAbsY")) byId("graphAbsY").checked = false;
       setZoom(1, true);
       buildGraphCoefs();
+      drawGraph();
+    });
+    if (byId("graphAbsY")) byId("graphAbsY").addEventListener("change", function () {
+      graphState.absY = byId("graphAbsY").checked;
+      drawGraph();
+    });
+    if (byId("graphAbsX")) byId("graphAbsX").addEventListener("change", function () {
+      graphState.absX = byId("graphAbsX").checked;
       drawGraph();
     });
 
