@@ -657,19 +657,19 @@
     {
       id: "sine", name: "Синусоида: y = A·sin(k(x − a)) + b",
       coefs: [{ k: "A", v: 1, min: -3, max: 3, step: 0.5 }, { k: "k", v: 1, min: -2, max: 2, step: 0.5 }],
-      ev: function (x, c) { var X = x - c.a; return c.A * Math.sin(c.k * X) + c.b; },
+      ev: function (x, c) { var a = c.unit === "deg" ? c.a * Math.PI / 180 : c.a; var X = x - a; return c.A * Math.sin(c.k * X) + c.b; },
       tex: function (c) { return trigTex("\\sin", c); }
     },
     {
       id: "cosine", name: "Косинусоида: y = A·cos(k(x − a)) + b",
       coefs: [{ k: "A", v: 1, min: -3, max: 3, step: 0.5 }, { k: "k", v: 1, min: -2, max: 2, step: 0.5 }],
-      ev: function (x, c) { var X = x - c.a; return c.A * Math.cos(c.k * X) + c.b; },
+      ev: function (x, c) { var a = c.unit === "deg" ? c.a * Math.PI / 180 : c.a; var X = x - a; return c.A * Math.cos(c.k * X) + c.b; },
       tex: function (c) { return trigTex("\\cos", c); }
     },
     {
       id: "tangent", name: "Тангенсоида: y = A·tg(k(x − a)) + b",
       coefs: [{ k: "A", v: 1, min: -3, max: 3, step: 0.5 }, { k: "k", v: 1, min: -2, max: 2, step: 0.5 }],
-      ev: function (x, c) { var X = x - c.a; return c.A * Math.tan(c.k * X) + c.b; },
+      ev: function (x, c) { var a = c.unit === "deg" ? c.a * Math.PI / 180 : c.a; var X = x - a; return c.A * Math.tan(c.k * X) + c.b; },
       tex: function (c) { return trigTex("\\operatorname{tg}", c); }
     }
   ];
@@ -690,21 +690,24 @@
     if (b > 0) return " + " + mul(b, body);
     return " - " + mul(Math.abs(b), body);
   }
-  function shiftX(a) {
+  function shiftX(a, deg) {
+    var u = deg ? "°" : "";
     if (a === 0) return "x";
-    return a > 0 ? "(x - " + fmtNum(a) + ")" : "(x + " + fmtNum(Math.abs(a)) + ")";
+    return a > 0 ? "(x - " + fmtNum(a) + u + ")" : "(x + " + fmtNum(Math.abs(a)) + u + ")";
   }
   function trigTex(name, c) {
-    var inner = (c.k === 1 ? "" : fmtNum(c.k)) + shiftX(c.a);
+    var deg = c.unit === "deg";
+    var inner = (c.k === 1 ? "" : fmtNum(c.k)) + shiftX(c.a, deg);
     return "y = " + mul(c.A, name + "(" + inner + ")") + add(c.b);
   }
-  var TRANSFORM_COEFS = [
-    { k: "a", v: 0, min: -10, max: 10, step: 0.5, cap: "сдвиг по x" },
-    { k: "b", v: 0, min: -10, max: 10, step: 0.5, cap: "сдвиг по y" }
-  ];
-  function shiftVal(key) {
-    var s = graphState.values["shift:" + key];
-    return s === undefined ? 0 : s;
+  function transformCoefs(kindId) {
+    var trig = isTrig(kindId);
+    var deg = graphState.unit === "deg";
+    var aSpec;
+    if (trig && deg) aSpec = { k: "a", v: 0, min: -360, max: 360, step: 15, suffix: "°", cap: "сдвиг по x" };
+    else if (trig) aSpec = { k: "a", v: 0, min: -6.5, max: 6.5, step: 0.5, cap: "сдвиг по x, рад" };
+    else aSpec = { k: "a", v: 0, min: -10, max: 10, step: 0.5, cap: "сдвиг по x" };
+    return [aSpec, { k: "b", v: 0, min: -10, max: 10, step: 0.5, cap: "сдвиг по y" }];
   }
 
   var GRAPH_BASE_RANGE = 10;
@@ -759,8 +762,11 @@
       var stored = graphState.values[g.id + ":" + c.k];
       v[c.k] = stored === undefined ? c.v : stored;
     });
-    v.a = shiftVal("a");
-    v.b = shiftVal("b");
+    transformCoefs(g.id).forEach(function (c) {
+      var s = graphState.values["shift:" + c.k];
+      v[c.k] = s === undefined ? c.v : s;
+    });
+    v.unit = graphState.unit;
     return v;
   }
   function renderCoefGroup(box, list, prefix) {
@@ -771,7 +777,7 @@
       wrap.className = "coef";
       var label = document.createElement("label");
       label.className = "coef__label";
-      label.textContent = c.k + " = " + fmtNum(cur) + (c.cap ? "  (" + c.cap + ")" : "");
+      label.textContent = c.k + " = " + fmtNum(cur) + (c.suffix || "") + (c.cap ? "  (" + c.cap + ")" : "");
 
       var row = document.createElement("div");
       row.className = "coef__row";
@@ -793,7 +799,7 @@
         graphState.values[prefix + c.k] = v;
         slider.value = v;
         num.value = v;
-        label.textContent = c.k + " = " + fmtNum(v) + (c.cap ? "  (" + c.cap + ")" : "");
+        label.textContent = c.k + " = " + fmtNum(v) + (c.suffix || "") + (c.cap ? "  (" + c.cap + ")" : "");
         drawGraph();
       }
       slider.addEventListener("input", function () { apply(slider.value, false); });
@@ -815,7 +821,7 @@
     head.className = "coef__heading";
     head.textContent = "Преобразования: f(x − a) + b";
     box.appendChild(head);
-    renderCoefGroup(box, TRANSFORM_COEFS, "shift:");
+    renderCoefGroup(box, transformCoefs(g.id), "shift:");
   }
   function niceStep(range) {
     var raw = range / 6;
@@ -945,7 +951,14 @@
     if (id === "hyper" && v.k !== 0) return "x = " + fmtCoord(v.a) + " (вертикальная), y = " + fmtCoord(v.b) + " (горизонтальная)";
     if (id === "expo" && v.A !== 0) return "y = " + fmtCoord(v.b) + " (горизонтальная)";
     if (id === "log" && v.A !== 0) return "x = " + fmtCoord(v.a) + " (вертикальная)";
-    if (id === "tangent" && v.k !== 0) return "вертикальные: x = " + fmtCoord(v.a) + " + π/(2k) + πn/k";
+    if (id === "tangent" && v.k !== 0) {
+      var deg = graphState.unit === "deg";
+      var aStr = fmtCoord(v.a) + (deg ? "°" : "");
+      var base = deg ? "90°" : "π/2";
+      var step = deg ? "180°" : "π";
+      var kk = (Math.abs(Math.abs(v.k) - 1) < 1e-9) ? "" : "/" + fmtNum(Math.abs(v.k));
+      return "вертикальные: x = " + aStr + " + " + base + kk + " + " + step + "n" + kk;
+    }
     return null;
   }
   function periodText(id, v) {
@@ -1002,7 +1015,7 @@
     var P2 = deg ? "360°" : "2π";
     var unit = deg ? "°" : "";
     function cstr(c) { var cv = deg ? c * 180 / Math.PI : c; return fmtCoord(cv) + unit; }
-    var head = (Math.abs(a) < 1e-9) ? "" : (fmtCoord(a) + " + ");
+    var head = (Math.abs(a) < 1e-9) ? "" : (fmtCoord(a) + unit + " + ");
     var slash = (Math.abs(Math.abs(k) - 1) < 1e-9) ? "" : "/" + fmtNum(Math.abs(k));
     if (id === "sine") {
       var c = Math.asin(t);
@@ -1656,7 +1669,16 @@
       drawGraph();
     });
     if (byId("graphUnit")) byId("graphUnit").addEventListener("change", function () {
-      graphState.unit = byId("graphUnit").value;
+      var next = byId("graphUnit").value;
+      var prev = graphState.unit;
+      if (next !== prev && isTrig(graphState.kind)) {
+        var s = graphState.values["shift:a"];
+        if (s !== undefined && s !== 0) {
+          graphState.values["shift:a"] = (next === "deg") ? (s * 180 / Math.PI) : (s * Math.PI / 180);
+        }
+      }
+      graphState.unit = next;
+      buildGraphCoefs();
       drawGraph();
     });
     if (byId("readHintBtn")) byId("readHintBtn").addEventListener("click", showReadHint);
