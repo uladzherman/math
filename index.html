@@ -139,9 +139,10 @@
       <div class="panel">
         <h2 class="panel__title">Интерактивные графики функций</h2>
         <p class="panel__text">Выберите вид функции и настройте коэффициенты — график обновится сразу.
-          Коэффициент b (B, c) смещает график вверх и вниз. График можно перетаскивать курсором
-          по координатной плоскости. Покрыты все виды функций из спецификации: линейная, квадратичная,
-          кубическая, гипербола, корень, модуль, показательная, логарифмическая и тригонометрические.</p>
+          Коэффициент b (B, c) смещает график вверх и вниз. График можно перетаскивать курсором по
+          координатной плоскости, масштаб менять колесом мыши или ползунком, а при наведении курсора
+          показываются координаты точки на графике. Покрыты все виды функций из спецификации: линейная,
+          квадратичная, кубическая, гипербола, корень, модуль, показательная, логарифмическая и тригонометрические.</p>
       </div>
       <div class="graph-layout">
         <div class="graph-controls">
@@ -150,11 +151,16 @@
             <select id="graphKind"></select>
           </label>
           <div id="graphCoefs"></div>
-          <button type="button" id="graphReset" class="btn btn--ghost">Сбросить коэффициенты</button>
+          <label class="field">
+            <span class="field__label">Масштаб: <b id="graphZoomVal">×1</b></span>
+            <input type="range" id="graphZoom" min="0.2" max="6" step="0.1" value="1">
+          </label>
+          <button type="button" id="graphReset" class="btn btn--ghost">Сбросить коэффициенты и вид</button>
           <p class="graph-formula" id="graphFormula"></p>
         </div>
         <div class="graph-canvas-wrap">
           <canvas id="graphCanvas" width="640" height="480"></canvas>
+          <p class="graph-readout" id="graphReadout">Наведите курсор на график, чтобы увидеть координаты точки.</p>
         </div>
       </div>
     </section>

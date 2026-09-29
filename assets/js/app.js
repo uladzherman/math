@@ -637,12 +637,28 @@
     return " - " + mul(Math.abs(b), body);
   }
 
-  var graphState = { kind: GRAPH_KINDS[0].id, values: {}, center: { x: 0, y: 0 }, wpp: (2 * 10) / 640 };
+  var GRAPH_BASE_RANGE = 10;
+  var graphState = { kind: GRAPH_KINDS[0].id, values: {}, center: { x: 0, y: 0 }, wpp: (2 * GRAPH_BASE_RANGE) / 640, rangeX: GRAPH_BASE_RANGE, zoom: 1 };
   function graphKind() {
     var found = GRAPH_KINDS[0];
     GRAPH_KINDS.forEach(function (g) { if (g.id === graphState.kind) found = g; });
     return found;
   }
+  function updateZoomLabel() {
+    var el = byId("graphZoomVal");
+    if (el) el.textContent = "×" + String(Math.round(graphState.zoom * 10) / 10).replace(".", ",");
+  }
+  function setZoom(z, skipDraw) {
+    if (isNaN(z)) return;
+    z = Math.min(6, Math.max(0.2, z));
+    graphState.zoom = z;
+    graphState.rangeX = GRAPH_BASE_RANGE / z;
+    var zoom = byId("graphZoom");
+    if (zoom) zoom.value = z;
+    updateZoomLabel();
+    if (!skipDraw) drawGraph();
+  }
+
   function buildGraphControls() {
     var sel = byId("graphKind");
     sel.innerHTML = "";
@@ -654,10 +670,17 @@
     sel.value = graphState.kind;
     sel.addEventListener("change", function () {
       graphState.kind = sel.value;
+      graphState.cursorX = undefined;
       buildGraphCoefs();
       drawGraph();
     });
     buildGraphCoefs();
+    var zoom = byId("graphZoom");
+    if (zoom) {
+      zoom.value = graphState.zoom;
+      zoom.addEventListener("input", function () { setZoom(parseFloat(zoom.value)); });
+      updateZoomLabel();
+    }
   }
   function currentValues() {
     var g = graphKind();
@@ -715,6 +738,20 @@
       box.appendChild(wrap);
     });
   }
+  function niceStep(range) {
+    var raw = range / 6;
+    var p = Math.pow(10, Math.floor(Math.log10(raw)));
+    var n = raw / p;
+    var s = n < 1.5 ? 1 : (n < 3.5 ? 2 : (n < 7.5 ? 5 : 10));
+    return s * p;
+  }
+  function fmtTick(v, step) {
+    if (Math.abs(v - Math.round(v)) < 1e-9) return String(Math.round(v));
+    var dec = Math.max(0, -Math.floor(Math.log10(step)));
+    return v.toFixed(dec).replace(".", ",");
+  }
+  function fmtCoord(v) { return String(Math.round(v * 100) / 100).replace(".", ","); }
+
   function drawGraph() {
     var canvas = byId("graphCanvas");
     var wrapEl = canvas.parentNode;
@@ -734,7 +771,8 @@
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     var W = cssW, H = cssH;
-    var rangeX = 10, rangeY = rangeX * (H / W);
+    var rangeX = graphState.rangeX;
+    var rangeY = rangeX * (H / W);
     var cx = graphState.center.x, cy = graphState.center.y;
     var xToPx = function (x) { return W / 2 + (x - cx) * (W / (2 * rangeX)); };
     var yToPx = function (y) { return H / 2 - (y - cy) * (H / (2 * rangeY)); };
@@ -746,40 +784,47 @@
     var colAccent = css.getPropertyValue("--accent").trim() || "#3b5bdb";
 
     ctx.clearRect(0, 0, W, H);
+
+    var step = niceStep(rangeX);
+    var k0 = Math.ceil((cx - rangeX) / step), k1 = Math.floor((cx + rangeX) / step);
+    var j0 = Math.ceil((cy - rangeY) / step), j1 = Math.floor((cy + rangeY) / step);
+
     ctx.strokeStyle = colBorder;
     ctx.lineWidth = 1;
-    var gx0 = Math.floor(cx - rangeX), gx1 = Math.ceil(cx + rangeX);
-    for (var gx = gx0; gx <= gx1; gx++) {
-      var pxg = xToPx(gx);
-      ctx.beginPath(); ctx.moveTo(pxg, 0); ctx.lineTo(pxg, H); ctx.stroke();
+    for (var k = k0; k <= k1; k++) {
+      var X = xToPx(k * step);
+      ctx.beginPath(); ctx.moveTo(X, 0); ctx.lineTo(X, H); ctx.stroke();
     }
-    var gy0 = Math.floor(cy - rangeY), gy1 = Math.ceil(cy + rangeY);
-    for (var gy = gy0; gy <= gy1; gy++) {
-      var pyg = yToPx(gy);
-      ctx.beginPath(); ctx.moveTo(0, pyg); ctx.lineTo(W, pyg); ctx.stroke();
+    for (var j = j0; j <= j1; j++) {
+      var Y = yToPx(j * step);
+      ctx.beginPath(); ctx.moveTo(0, Y); ctx.lineTo(W, Y); ctx.stroke();
     }
+
     ctx.strokeStyle = colMuted;
     ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(0, yToPx(0)); ctx.lineTo(W, yToPx(0)); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(xToPx(0), 0); ctx.lineTo(xToPx(0), H); ctx.stroke();
+
     ctx.fillStyle = colMuted;
     ctx.font = "12px -apple-system, sans-serif";
+    var axisY = yToPx(0), axisX = xToPx(0);
     ctx.textAlign = "center"; ctx.textBaseline = "top";
-    var axisY = yToPx(0);
     if (axisY >= 0 && axisY <= H) {
-      for (var lx = gx0; lx <= gx1; lx++) {
-        if (lx === 0) continue;
-        ctx.fillText(String(lx), xToPx(lx), axisY + 4);
+      for (var lk = k0; lk <= k1; lk++) {
+        if (lk === 0) continue;
+        ctx.fillText(fmtTick(lk * step, step), xToPx(lk * step), axisY + 4);
       }
     }
     ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    var axisX = xToPx(0);
     if (axisX >= 0 && axisX <= W) {
-      for (var ly = gy0; ly <= gy1; ly++) {
-        if (ly === 0) continue;
-        ctx.fillText(String(ly), axisX - 5, yToPx(ly));
+      for (var lj = j0; lj <= j1; lj++) {
+        if (lj === 0) continue;
+        ctx.fillText(fmtTick(lj * step, step), axisX - 5, yToPx(lj * step));
       }
     }
+    ctx.textAlign = "right"; ctx.textBaseline = "top";
+    ctx.fillText("0", axisX - 3, axisY + 3);
+
     var g = graphKind();
     var vals = currentValues();
     ctx.strokeStyle = colAccent;
@@ -791,7 +836,7 @@
       var x = cx + (px - W / 2) * (2 * rangeX) / W;
       var y;
       try { y = g.ev(x, vals); } catch (e) { y = NaN; }
-      if (y === null || isNaN(y) || !isFinite(y) || y < -rangeY * 4 || y > rangeY * 4) {
+      if (y === null || isNaN(y) || !isFinite(y) || y < cy - rangeY * 3 || y > cy + rangeY * 3) {
         started = false;
         continue;
       }
@@ -800,10 +845,42 @@
       else { ctx.lineTo(px, py); }
     }
     ctx.stroke();
+
+    if (graphState.cursorX !== undefined) {
+      var mx = graphState.cursorX, my;
+      try { my = g.ev(mx, vals); } catch (e) { my = NaN; }
+      if (isFinite(my)) {
+        var mpx = xToPx(mx), mpy = yToPx(my);
+        ctx.fillStyle = colAccent;
+        ctx.beginPath(); ctx.arc(mpx, mpy, 4.5, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = colMuted;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.moveTo(mpx, yToPx(0)); ctx.lineTo(mpx, mpy); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(xToPx(0), mpy); ctx.lineTo(mpx, mpy); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
     appendRich(byId("graphFormula"), "$" + g.tex(vals) + "$");
+    updateReadout();
   }
 
-  /* ============ Перетаскивание графика ============ */
+  function updateReadout() {
+    var el = byId("graphReadout");
+    if (!el) return;
+    if (graphState.cursorX === undefined) {
+      el.textContent = "Наведите курсор на график, чтобы увидеть координаты точки.";
+      return;
+    }
+    var g = graphKind();
+    var vals = currentValues();
+    var x = graphState.cursorX, y;
+    try { y = g.ev(x, vals); } catch (e) { y = NaN; }
+    var yText = (y === null || isNaN(y) || !isFinite(y)) ? "не определена" : fmtCoord(y);
+    el.textContent = "Точка на графике:  x = " + fmtCoord(x) + ",  y = " + yText;
+  }
+
+  /* ============ Перетаскивание и наведение ============ */
   var graphDrag = null;
   function setupGraphPan() {
     var canvas = byId("graphCanvas");
@@ -816,15 +893,23 @@
       if (e.preventDefault) e.preventDefault();
     });
     canvas.addEventListener("pointermove", function (e) {
-      if (!graphDrag) return;
-      var dx = e.clientX - graphDrag.x;
-      var dy = e.clientY - graphDrag.y;
-      graphDrag.x = e.clientX;
-      graphDrag.y = e.clientY;
-      var wpp = graphState.wpp || 0.02;
-      graphState.center.x -= dx * wpp;
-      graphState.center.y += dy * wpp;
-      drawGraph();
+      if (graphDrag) {
+        var dx = e.clientX - graphDrag.x;
+        var dy = e.clientY - graphDrag.y;
+        graphDrag.x = e.clientX;
+        graphDrag.y = e.clientY;
+        var wpp = graphState.wpp || (2 * graphState.rangeX) / 640;
+        graphState.center.x -= dx * wpp;
+        graphState.center.y += dy * wpp;
+        graphState.cursorX = undefined;
+        drawGraph();
+      } else {
+        var rect = canvas.getBoundingClientRect();
+        var px = e.clientX - rect.left;
+        var W = canvas.clientWidth || 640;
+        graphState.cursorX = graphState.center.x + (px - W / 2) * (2 * graphState.rangeX) / W;
+        drawGraph();
+      }
       if (e.preventDefault) e.preventDefault();
     });
     function endDrag(e) {
@@ -838,6 +923,16 @@
     canvas.addEventListener("pointerup", endDrag);
     canvas.addEventListener("pointercancel", endDrag);
     canvas.addEventListener("lostpointercapture", endDrag);
+    canvas.addEventListener("pointerleave", function () {
+      if (graphDrag) return;
+      graphState.cursorX = undefined;
+      drawGraph();
+    });
+    canvas.addEventListener("wheel", function (e) {
+      if (e.preventDefault) e.preventDefault();
+      var factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+      setZoom(graphState.zoom * factor);
+    }, { passive: false });
   }
 
   /* ============ Переключение режимов ============ */
@@ -928,6 +1023,8 @@
     byId("graphReset").addEventListener("click", function () {
       graphState.values = {};
       graphState.center = { x: 0, y: 0 };
+      graphState.cursorX = undefined;
+      setZoom(1, true);
       buildGraphCoefs();
       drawGraph();
     });
