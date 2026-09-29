@@ -553,70 +553,70 @@
   /* ============ Графики ============ */
   var GRAPH_KINDS = [
     {
-      id: "line", name: "Линейная: y = kx + b",
-      coefs: [{ k: "k", v: 1, min: -5, max: 5, step: 0.5 }, { k: "b", v: 0, min: -10, max: 10, step: 0.5 }],
-      ev: function (x, c) { return c.k * x + c.b; },
-      tex: function (c) { return "y = " + mul(c.k, "x") + add(c.b); }
+      id: "line", name: "Линейная: y = k(x − a) + b",
+      coefs: [{ k: "k", v: 1, min: -5, max: 5, step: 0.5 }],
+      ev: function (x, c) { var X = x - c.a; return c.k * X + c.b; },
+      tex: function (c) { return "y = " + mul(c.k, shiftX(c.a)) + add(c.b); }
     },
     {
-      id: "quad", name: "Квадратичная: y = ax² + bx + c",
-      coefs: [{ k: "a", v: 1, min: -3, max: 3, step: 0.25 }, { k: "b", v: 0, min: -6, max: 6, step: 0.5 }, { k: "c", v: 0, min: -10, max: 10, step: 0.5 }],
-      ev: function (x, c) { return c.a * x * x + c.b * x + c.c; },
-      tex: function (c) { return "y = " + mul(c.a, "x^2") + addMul(c.b, "x") + add(c.c); }
+      id: "quad", name: "Квадратичная: y = k(x − a)² + p(x − a) + b",
+      coefs: [{ k: "k", v: 1, min: -3, max: 3, step: 0.25 }, { k: "p", v: 0, min: -6, max: 6, step: 0.5 }],
+      ev: function (x, c) { var X = x - c.a; return c.k * X * X + c.p * X + c.b; },
+      tex: function (c) { return "y = " + mul(c.k, shiftX(c.a) + "^2") + addMul(c.p, shiftX(c.a)) + add(c.b); }
     },
     {
-      id: "cubic", name: "Кубическая: y = ax³ + b",
-      coefs: [{ k: "a", v: 1, min: -2, max: 2, step: 0.25 }, { k: "b", v: 0, min: -10, max: 10, step: 0.5 }],
-      ev: function (x, c) { return c.a * x * x * x + c.b; },
-      tex: function (c) { return "y = " + mul(c.a, "x^3") + add(c.b); }
+      id: "cubic", name: "Кубическая: y = k(x − a)³ + b",
+      coefs: [{ k: "k", v: 1, min: -2, max: 2, step: 0.25 }],
+      ev: function (x, c) { var X = x - c.a; return c.k * X * X * X + c.b; },
+      tex: function (c) { return "y = " + mul(c.k, shiftX(c.a) + "^3") + add(c.b); }
     },
     {
-      id: "hyper", name: "Обратная пропорциональность: y = k/x + b",
-      coefs: [{ k: "k", v: 1, min: -6, max: 6, step: 0.5 }, { k: "b", v: 0, min: -10, max: 10, step: 0.5 }],
-      ev: function (x, c) { return c.k / x + c.b; },
-      tex: function (c) { return "y = \\dfrac{" + c.k + "}{x}" + add(c.b); }
+      id: "hyper", name: "Обратная пропорциональность: y = k/(x − a) + b",
+      coefs: [{ k: "k", v: 1, min: -6, max: 6, step: 0.5 }],
+      ev: function (x, c) { var X = x - c.a; return X === 0 ? NaN : c.k / X + c.b; },
+      tex: function (c) { return "y = \\dfrac{" + c.k + "}{" + shiftX(c.a) + "}" + add(c.b); }
     },
     {
-      id: "sqrt", name: "Корень: y = k·√x + b",
-      coefs: [{ k: "k", v: 1, min: -4, max: 4, step: 0.5 }, { k: "b", v: 0, min: -10, max: 10, step: 0.5 }],
-      ev: function (x, c) { return x < 0 ? NaN : c.k * Math.sqrt(x) + c.b; },
-      tex: function (c) { return "y = " + c.k + "\\sqrt{x}" + add(c.b); }
+      id: "sqrt", name: "Корень: y = k·√(x − a) + b",
+      coefs: [{ k: "k", v: 1, min: -4, max: 4, step: 0.5 }],
+      ev: function (x, c) { var X = x - c.a; return X < 0 ? NaN : c.k * Math.sqrt(X) + c.b; },
+      tex: function (c) { return "y = " + mul(c.k, "\\sqrt{" + shiftX(c.a) + "}") + add(c.b); }
     },
     {
-      id: "abs", name: "Модуль: y = k|x| + b",
-      coefs: [{ k: "k", v: 1, min: -4, max: 4, step: 0.5 }, { k: "b", v: 0, min: -10, max: 10, step: 0.5 }],
-      ev: function (x, c) { return c.k * Math.abs(x) + c.b; },
-      tex: function (c) { return "y = " + mul(c.k, "|x|") + add(c.b); }
+      id: "abs", name: "Модуль: y = k|x − a| + b",
+      coefs: [{ k: "k", v: 1, min: -4, max: 4, step: 0.5 }],
+      ev: function (x, c) { var X = x - c.a; return c.k * Math.abs(X) + c.b; },
+      tex: function (c) { return "y = " + mul(c.k, "|" + shiftX(c.a) + "|") + add(c.b); }
     },
     {
-      id: "expo", name: "Показательная: y = A·kˣ + b",
-      coefs: [{ k: "A", v: 1, min: -4, max: 4, step: 0.5 }, { k: "k", v: 2, min: 0.5, max: 3, step: 0.5 }, { k: "b", v: 0, min: -10, max: 10, step: 0.5 }],
-      ev: function (x, c) { return c.A * Math.pow(c.k, x) + c.b; },
-      tex: function (c) { return "y = " + mul(c.A, fmtNum(c.k) + "^{x}") + add(c.b); }
+      id: "expo", name: "Показательная: y = A·k^(x − a) + b",
+      coefs: [{ k: "A", v: 1, min: -4, max: 4, step: 0.5 }, { k: "k", v: 2, min: 0.5, max: 3, step: 0.5 }],
+      ev: function (x, c) { var X = x - c.a; return c.A * Math.pow(c.k, X) + c.b; },
+      tex: function (c) { return "y = " + mul(c.A, fmtNum(c.k) + "^{" + shiftX(c.a) + "}") + add(c.b); }
     },
     {
-      id: "log", name: "Логарифмическая: y = A·log_k x + b",
-      coefs: [{ k: "A", v: 1, min: -4, max: 4, step: 0.5 }, { k: "k", v: 2, min: 0.5, max: 5, step: 0.5 }, { k: "b", v: 0, min: -10, max: 10, step: 0.5 }],
-      ev: function (x, c) { return x <= 0 ? NaN : c.A * Math.log(x) / Math.log(c.k) + c.b; },
-      tex: function (c) { return "y = " + mul(c.A, "\\log_{" + fmtNum(c.k) + "} x") + add(c.b); }
+      id: "log", name: "Логарифмическая: y = A·log_k(x − a) + b",
+      coefs: [{ k: "A", v: 1, min: -4, max: 4, step: 0.5 }, { k: "k", v: 2, min: 0.5, max: 5, step: 0.5 }],
+      ev: function (x, c) { var X = x - c.a; return X <= 0 ? NaN : c.A * Math.log(X) / Math.log(c.k) + c.b; },
+      tex: function (c) { return "y = " + mul(c.A, "\\log_{" + fmtNum(c.k) + "}" + shiftX(c.a)) + add(c.b); }
     },
     {
-      id: "sine", name: "Синусоида: y = A·sin(kx) + b",
-      coefs: [{ k: "A", v: 1, min: -3, max: 3, step: 0.5 }, { k: "k", v: 1, min: -2, max: 2, step: 0.5 }, { k: "b", v: 0, min: -10, max: 10, step: 0.5 }],
-      ev: function (x, c) { return c.A * Math.sin(c.k * x) + c.b; },
-      tex: function (c) { return "y = " + mul(c.A, "\\sin(" + fmtNum(c.k) + "x)") + add(c.b); }
+      id: "sine", name: "Синусоида: y = A·sin(k(x − a)) + b",
+      coefs: [{ k: "A", v: 1, min: -3, max: 3, step: 0.5 }, { k: "k", v: 1, min: -2, max: 2, step: 0.5 }],
+      ev: function (x, c) { var X = x - c.a; return c.A * Math.sin(c.k * X) + c.b; },
+      tex: function (c) { return trigTex("\\sin", c); }
     },
     {
-      id: "cosine", name: "Косинусоида: y = A·cos(kx) + b",
-      coefs: [{ k: "A", v: 1, min: -3, max: 3, step: 0.5 }, { k: "k", v: 1, min: -2, max: 2, step: 0.5 }, { k: "b", v: 0, min: -10, max: 10, step: 0.5 }],
-      ev: function (x, c) { return c.A * Math.cos(c.k * x) + c.b; },
-      tex: function (c) { return "y = " + mul(c.A, "\\cos(" + fmtNum(c.k) + "x)") + add(c.b); }
+      id: "cosine", name: "Косинусоида: y = A·cos(k(x − a)) + b",
+      coefs: [{ k: "A", v: 1, min: -3, max: 3, step: 0.5 }, { k: "k", v: 1, min: -2, max: 2, step: 0.5 }],
+      ev: function (x, c) { var X = x - c.a; return c.A * Math.cos(c.k * X) + c.b; },
+      tex: function (c) { return trigTex("\\cos", c); }
     },
     {
-      id: "tangent", name: "Тангенсоида: y = A·tg(kx) + b",
-      coefs: [{ k: "A", v: 1, min: -3, max: 3, step: 0.5 }, { k: "k", v: 1, min: -2, max: 2, step: 0.5 }, { k: "b", v: 0, min: -10, max: 10, step: 0.5 }],
-      ev: function (x, c) { return c.A * Math.tan(c.k * x) + c.b; },
-      tex: function (c) { return "y = " + mul(c.A, "\\operatorname{tg}(" + fmtNum(c.k) + "x)") + add(c.b); }
+      id: "tangent", name: "Тангенсоида: y = A·tg(k(x − a)) + b",
+      coefs: [{ k: "A", v: 1, min: -3, max: 3, step: 0.5 }, { k: "k", v: 1, min: -2, max: 2, step: 0.5 }],
+      ev: function (x, c) { var X = x - c.a; return c.A * Math.tan(c.k * X) + c.b; },
+      tex: function (c) { return trigTex("\\operatorname{tg}", c); }
     }
   ];
 
@@ -635,6 +635,22 @@
     if (b === 0) return "";
     if (b > 0) return " + " + mul(b, body);
     return " - " + mul(Math.abs(b), body);
+  }
+  function shiftX(a) {
+    if (a === 0) return "x";
+    return a > 0 ? "(x - " + fmtNum(a) + ")" : "(x + " + fmtNum(Math.abs(a)) + ")";
+  }
+  function trigTex(name, c) {
+    var inner = (c.k === 1 ? "" : fmtNum(c.k)) + shiftX(c.a);
+    return "y = " + mul(c.A, name + "(" + inner + ")") + add(c.b);
+  }
+  var TRANSFORM_COEFS = [
+    { k: "a", v: 0, min: -10, max: 10, step: 0.5, cap: "сдвиг по x" },
+    { k: "b", v: 0, min: -10, max: 10, step: 0.5, cap: "сдвиг по y" }
+  ];
+  function shiftVal(key) {
+    var s = graphState.values["shift:" + key];
+    return s === undefined ? 0 : s;
   }
 
   var GRAPH_BASE_RANGE = 10;
@@ -689,43 +705,41 @@
       var stored = graphState.values[g.id + ":" + c.k];
       v[c.k] = stored === undefined ? c.v : stored;
     });
+    v.a = shiftVal("a");
+    v.b = shiftVal("b");
     return v;
   }
-  function buildGraphCoefs() {
-    var box = byId("graphCoefs");
-    box.innerHTML = "";
-    var g = graphKind();
-    var vals = currentValues();
-    g.coefs.forEach(function (c) {
+  function renderCoefGroup(box, list, prefix) {
+    list.forEach(function (c) {
+      var stored = graphState.values[prefix + c.k];
+      var cur = stored === undefined ? c.v : stored;
       var wrap = document.createElement("div");
       wrap.className = "coef";
       var label = document.createElement("label");
       label.className = "coef__label";
-      label.textContent = c.k + " = " + fmtNum(vals[c.k]);
+      label.textContent = c.k + " = " + fmtNum(cur) + (c.cap ? "  (" + c.cap + ")" : "");
 
       var row = document.createElement("div");
       row.className = "coef__row";
-
       var slider = document.createElement("input");
       slider.type = "range";
       slider.min = c.min; slider.max = c.max; slider.step = c.step;
-      slider.value = vals[c.k];
-
+      slider.value = cur;
       var num = document.createElement("input");
       num.type = "number";
       num.className = "coef__num";
       num.step = c.step;
-      num.value = vals[c.k];
+      num.value = cur;
       num.setAttribute("aria-label", "Коэффициент " + c.k);
 
       function apply(raw, clamp) {
         var v = parseFloat(String(raw).replace(",", "."));
         if (isNaN(v)) return;
         if (clamp) v = Math.min(c.max, Math.max(c.min, v));
-        graphState.values[g.id + ":" + c.k] = v;
+        graphState.values[prefix + c.k] = v;
         slider.value = v;
         num.value = v;
-        label.textContent = c.k + " = " + fmtNum(v);
+        label.textContent = c.k + " = " + fmtNum(v) + (c.cap ? "  (" + c.cap + ")" : "");
         drawGraph();
       }
       slider.addEventListener("input", function () { apply(slider.value, false); });
@@ -737,6 +751,17 @@
       wrap.appendChild(label); wrap.appendChild(row);
       box.appendChild(wrap);
     });
+  }
+  function buildGraphCoefs() {
+    var box = byId("graphCoefs");
+    box.innerHTML = "";
+    var g = graphKind();
+    renderCoefGroup(box, g.coefs, g.id + ":");
+    var head = document.createElement("p");
+    head.className = "coef__heading";
+    head.textContent = "Преобразования: f(x − a) + b";
+    box.appendChild(head);
+    renderCoefGroup(box, TRANSFORM_COEFS, "shift:");
   }
   function niceStep(range) {
     var raw = range / 6;
@@ -751,6 +776,161 @@
     return v.toFixed(dec).replace(".", ",");
   }
   function fmtCoord(v) { return String(Math.round(v * 100) / 100).replace(".", ","); }
+
+  /* ============ Свойства функции ============ */
+  function graphEval(g, v, x) {
+    try { var y = g.ev(x, v); return (y === null || isNaN(y)) ? NaN : y; }
+    catch (e) { return NaN; }
+  }
+  function findZeros(g, v, x0, x1) {
+    var zs = [], n = 600;
+    var prevX = x0, prevY = graphEval(g, v, x0), pf = isFinite(prevY);
+    for (var i = 1; i <= n; i++) {
+      var x = x0 + (x1 - x0) * i / n, y = graphEval(g, v, x);
+      if (pf && isFinite(y)) {
+        if (prevY === 0) zs.push(prevX);
+        else if (prevY * y < 0) {
+          var lo = prevX, hi = x, flo = prevY;
+          for (var b = 0; b < 50; b++) {
+            var m = (lo + hi) / 2, fm = graphEval(g, v, m);
+            if (!isFinite(fm)) break;
+            if (flo * fm <= 0) hi = m; else { lo = m; flo = fm; }
+          }
+          zs.push((lo + hi) / 2);
+        }
+      }
+      prevX = x; prevY = y; pf = isFinite(y);
+    }
+    return zs.filter(function (z, i, arr) {
+      return arr.findIndex(function (w) { return Math.abs(w - z) < 1e-3; }) === i;
+    });
+  }
+  function graphParity(g, v) {
+    var even = true, odd = true, n = 0;
+    for (var i = 1; i <= 60; i++) {
+      var x = i * 0.2;
+      var fp = graphEval(g, v, x), fm = graphEval(g, v, -x);
+      if (!isFinite(fp) || !isFinite(fm)) continue;
+      n++;
+      if (Math.abs(fp - fm) > 1e-6) even = false;
+      if (Math.abs(fp + fm) > 1e-6) odd = false;
+    }
+    if (n < 5) return "ни чётная, ни нечётная";
+    if (even && odd) return "f(x) = 0";
+    if (even) return "чётная: f(−x) = f(x)";
+    if (odd) return "нечётная: f(−x) = −f(x)";
+    return "ни чётная, ни нечётная";
+  }
+  function domainText(id, v) {
+    switch (id) {
+      case "hyper": return "x ≠ " + fmtCoord(v.a);
+      case "sqrt": return "x ≥ " + fmtCoord(v.a);
+      case "log": return "x > " + fmtCoord(v.a);
+      case "tangent": return "x ≠ " + fmtCoord(v.a) + " + π/(2k) + πn/k, n ∈ ℤ";
+      default: return "x ∈ ℝ";
+    }
+  }
+  function rangeText(id, v) {
+    switch (id) {
+      case "line": return v.k === 0 ? ("y = " + fmtCoord(v.b)) : "y ∈ ℝ";
+      case "quad":
+        if (v.k === 0) return v.p === 0 ? ("y = " + fmtCoord(v.b)) : "y ∈ ℝ";
+        var yv = v.b - (v.p * v.p) / (4 * v.k);
+        return v.k > 0 ? ("y ≥ " + fmtCoord(yv)) : ("y ≤ " + fmtCoord(yv));
+      case "cubic": return "y ∈ ℝ";
+      case "hyper": return v.k === 0 ? ("y = " + fmtCoord(v.b)) : ("y ≠ " + fmtCoord(v.b));
+      case "sqrt":
+      case "abs":
+        return v.k === 0 ? ("y = " + fmtCoord(v.b)) : (v.k > 0 ? ("y ≥ " + fmtCoord(v.b)) : ("y ≤ " + fmtCoord(v.b)));
+      case "expo": return v.A === 0 ? ("y = " + fmtCoord(v.b)) : (v.A > 0 ? ("y > " + fmtCoord(v.b)) : ("y < " + fmtCoord(v.b)));
+      case "log": return "y ∈ ℝ";
+      case "sine":
+      case "cosine": return "[" + fmtCoord(v.b - Math.abs(v.A)) + "; " + fmtCoord(v.b + Math.abs(v.A)) + "]";
+      default: return "y ∈ ℝ";
+    }
+  }
+  function extremumText(id, v) {
+    if (id === "quad" && v.k !== 0) {
+      var x0 = v.a - v.p / (2 * v.k), y0 = v.b - (v.p * v.p) / (4 * v.k);
+      return (v.k > 0 ? "минимум " : "максимум ") + fmtCoord(y0) + " при x = " + fmtCoord(x0);
+    }
+    if (id === "abs" && v.k !== 0) {
+      return (v.k > 0 ? "минимум " : "максимум ") + fmtCoord(v.b) + " при x = " + fmtCoord(v.a);
+    }
+    if ((id === "sine" || id === "cosine") && v.A !== 0) {
+      return "наибольшее " + fmtCoord(v.b + Math.abs(v.A)) + ", наименьшее " + fmtCoord(v.b - Math.abs(v.A));
+    }
+    return null;
+  }
+  function asymptoteText(id, v) {
+    if (id === "hyper" && v.k !== 0) return "x = " + fmtCoord(v.a) + " (вертикальная), y = " + fmtCoord(v.b) + " (горизонтальная)";
+    if (id === "expo" && v.A !== 0) return "y = " + fmtCoord(v.b) + " (горизонтальная)";
+    if (id === "log" && v.A !== 0) return "x = " + fmtCoord(v.a) + " (вертикальная)";
+    if (id === "tangent" && v.k !== 0) return "вертикальные: x = " + fmtCoord(v.a) + " + π/(2k) + πn/k";
+    return null;
+  }
+  function periodText(id, v) {
+    if (v.k === 0) return null;
+    var ak = Math.abs(v.k);
+    if (id === "sine" || id === "cosine") return ak === 1 ? "2π" : ("2π/" + fmtNum(ak) + " ≈ " + fmtCoord(2 * Math.PI / ak));
+    if (id === "tangent") return ak === 1 ? "π" : ("π/" + fmtNum(ak) + " ≈ " + fmtCoord(Math.PI / ak));
+    return null;
+  }
+  function monotonicText(id, v) {
+    var k = v.k;
+    switch (id) {
+      case "line":
+      case "cubic":
+        if ((id === "line" ? k : v.k) === 0) return "постоянная";
+        return k > 0 ? "возрастает на ℝ" : "убывает на ℝ";
+      case "quad":
+        if (v.k === 0) return "линейная (см. линейную функцию)";
+        var x0 = v.a - v.p / (2 * v.k);
+        return v.k > 0
+          ? "убывает на (−∞; " + fmtCoord(x0) + "], возрастает на [" + fmtCoord(x0) + "; +∞)"
+          : "возрастает на (−∞; " + fmtCoord(x0) + "], убывает на [" + fmtCoord(x0) + "; +∞)";
+      case "hyper": return v.k > 0 ? "убывает на каждом промежутке области определения" : "возрастает на каждом промежутке области определения";
+      case "sqrt": return k >= 0 ? "возрастает на области определения" : "убывает на области определения";
+      case "abs": return k > 0 ? "убывает на (−∞; " + fmtCoord(v.a) + "], возрастает на [" + fmtCoord(v.a) + "; +∞)" : "возрастает на (−∞; " + fmtCoord(v.a) + "], убывает на [" + fmtCoord(v.a) + "; +∞)";
+      case "expo": {
+        if (v.A === 0) return "постоянная";
+        var inc = (v.k > 1) === (v.A > 0);
+        return inc ? "возрастает на ℝ" : "убывает на ℝ";
+      }
+      case "log": {
+        if (v.A === 0) return "постоянная";
+        var inc2 = (v.k > 1) === (v.A > 0);
+        return inc2 ? "возрастает на области определения" : "убывает на области определения";
+      }
+      default: return null;
+    }
+  }
+  function renderGraphProps(g, v) {
+    var box = byId("graphProps");
+    if (!box) return;
+    box.innerHTML = "";
+    var rows = [];
+    rows.push(["Область определения", domainText(g.id, v)]);
+    rows.push(["Область значений", rangeText(g.id, v)]);
+    rows.push(["Чётность", graphParity(g, v)]);
+    var rx = graphState.rangeX;
+    var zs = findZeros(g, v, graphState.center.x - rx, graphState.center.x + rx);
+    rows.push(["Нули функции", zs.length ? zs.slice(0, 8).map(fmtCoord).join(";  ") + (zs.length > 8 ? "  …" : "") : "нет на видимом промежутке"]);
+    var y0 = graphEval(g, v, 0);
+    rows.push(["Пересечение с осью Oy", isFinite(y0) ? "(0; " + fmtCoord(y0) + ")" : "нет"]);
+    var ext = extremumText(g.id, v); if (ext) rows.push(["Экстремум", ext]);
+    var asy = asymptoteText(g.id, v); if (asy) rows.push(["Асимптоты", asy]);
+    var per = periodText(g.id, v); if (per) rows.push(["Период", per]);
+    var mono = monotonicText(g.id, v); if (mono) rows.push(["Монотонность", mono]);
+    rows.forEach(function (r) {
+      var li = document.createElement("li");
+      var b = document.createElement("b");
+      b.textContent = r[0] + ": ";
+      li.appendChild(b);
+      li.appendChild(document.createTextNode(r[1]));
+      box.appendChild(li);
+    });
+  }
 
   function drawGraph() {
     var canvas = byId("graphCanvas");
@@ -862,6 +1042,7 @@
     }
 
     appendRich(byId("graphFormula"), "$" + g.tex(vals) + "$");
+    renderGraphProps(g, vals);
     updateReadout();
   }
 
