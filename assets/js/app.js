@@ -1071,6 +1071,7 @@
     var padR = parseFloat(cs.paddingRight) || 0;
     var availW = Math.floor(wrapEl.clientWidth - padL - padR);
     if (availW <= 0) availW = Math.min(720, Math.max(280, (window.innerWidth || 640) - 60));
+    if (view.maxW) availW = Math.min(availW, view.maxW);
     var aspect = view.aspect || 0.72;
     var minH = (window.innerWidth <= 620) ? 240 : 200;
     var maxH = (window.innerHeight || 800) - (window.innerWidth <= 620 ? 200 : 250);
@@ -1392,7 +1393,7 @@
       paintGraph(canvas, read.current.g, read.current.vals, {
         centerX: 0, centerY: 0, rangeX: read.current.rangeX,
         absX: false, absY: false, trig: isTrig(id), unit: graphState.unit,
-        aspect: (window.innerWidth <= 620 ? 0.82 : 0.6)
+        aspect: 0.6, maxW: 520
       });
     });
   }
