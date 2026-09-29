@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Тренажёр по математике — формулы, карточки и задачи ЦЭ/ЦТ</title>
-  <meta name="description" content="Тренажёр по математике для подготовки к ЦЭ/ЦТ: карточки формул, соответствие, выбор формулы и названия, задачи, экзамен на 30 заданий с таймером и графики функций.">
+  <title>Тренажёр по математике — карточки и формулы ЦЭ/ЦТ</title>
+  <meta name="description" content="Тренажёр по математике для подготовки к ЦЭ/ЦТ: карточки формул, соответствие «название ↔ формула», выбор формулы и названия, интервальное повторение и графики функций.">
   <link rel="icon" href="data:,">
 
   <link rel="stylesheet"
@@ -19,7 +19,7 @@
       <div class="header__top">
         <div class="header__head">
           <h1>Тренажёр по математике</h1>
-          <p class="subtitle">Карточки формул, соответствие, задачи — подготовка к ЦЭ/ЦТ 2026</p>
+          <p class="subtitle">Карточки формул, соответствие и повторение — подготовка к ЦЭ/ЦТ 2026</p>
         </div>
         <div class="socials">
           <a class="social-icon" href="https://www.instagram.com/fizmathimbio/" target="_blank"
@@ -44,9 +44,6 @@
         <button type="button" class="tab" data-mode="match">Соответствие</button>
         <button type="button" class="tab" data-mode="formulas">Формулы</button>
         <button type="button" class="tab" data-mode="names">Названия</button>
-        <button type="button" class="tab" data-mode="tasks">Задачи</button>
-        <button type="button" class="tab" data-mode="exam">Экзамен</button>
-        <button type="button" class="tab" data-mode="history">Разбор</button>
         <button type="button" class="tab" data-mode="review">Повторение <span class="tab__count" id="dueCount">0</span></button>
         <button type="button" class="tab" data-mode="graph">Графики</button>
       </nav>
@@ -120,99 +117,6 @@
       <p class="feedback" id="namesFeedback"></p>
     </section>
 
-    <!-- ===== Режим: задачи ===== -->
-    <section class="view quiz" id="viewTasks" hidden>
-      <div class="chips" id="practiceChips" role="tablist" aria-label="Разделы"></div>
-      <p class="quiz__meta" id="practiceMeta">Верно 0 · Ошибок 0</p>
-      <div class="quiz__card">
-        <p class="quiz__caption" id="practiceSection"></p>
-        <div class="quiz__task" id="practiceTask"></div>
-      </div>
-      <div class="options" id="practiceOptions"></div>
-      <div class="answer-input" id="practiceInputRow" hidden>
-        <label class="answer-input__label" for="practiceInput">Ответ (целое число):</label>
-        <input type="text" id="practiceInput" class="answer-input__field" inputmode="numeric"
-               autocomplete="off" spellcheck="false" placeholder="Введите ответ">
-      </div>
-      <div class="quiz__row">
-        <button type="button" id="practiceCheck" class="btn" hidden>Проверить</button>
-        <button type="button" id="practiceNext" class="btn btn--ghost" disabled>Дальше</button>
-        <button type="button" id="practiceReset" class="btn btn--ghost">Сбросить прогресс</button>
-      </div>
-      <p class="feedback" id="practiceFeedback"></p>
-      <div class="solution" id="practiceSolution" hidden>
-        <p class="solution__title">Решение</p>
-        <div class="solution__body" id="practiceSolutionBody"></div>
-      </div>
-    </section>
-
-    <!-- ===== Режим: экзамен ===== -->
-    <section class="view" id="viewExam" hidden>
-      <div id="examStart">
-        <div class="panel">
-          <h2 class="panel__title">Экзаменационный вариант</h2>
-          <p class="panel__text">Вариант формируется автоматически по спецификации ЦЭ/ЦТ 2026: 30 заданий
-            (Часть A — 10 заданий с выбором ответа, Часть B — 20 заданий с кратким ответом),
-            время на выполнение — 210 минут, калькулятор не используется.</p>
-          <div class="spec-grid" id="examSpecGrid"></div>
-          <div class="quiz__row">
-            <button type="button" id="examStartBtn" class="btn">Начать экзамен</button>
-            <button type="button" id="examResumeBtn" class="btn btn--ghost" hidden>Продолжить незавершённый</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="examRun" hidden>
-        <div class="exam-bar">
-          <div class="timer" id="examTimer" aria-live="polite">210:00</div>
-          <div class="exam-bar__info"><span id="examProgressText">Отвечено 0 из 30</span></div>
-          <button type="button" id="examFinish" class="btn btn--warn">Завершить</button>
-        </div>
-
-        <div class="exam-body">
-          <aside class="exam-nav" aria-label="Навигация по заданиям">
-            <p class="exam-nav__title">Задания</p>
-            <div class="navgrid" id="examNavGrid"></div>
-            <div class="navlegend">
-              <span class="navlegend__item"><i class="dot dot--done"></i> отвечено</span>
-              <span class="navlegend__item"><i class="dot dot--current"></i> текущее</span>
-              <span class="navlegend__item"><i class="dot dot--empty"></i> без ответа</span>
-            </div>
-          </aside>
-          <div class="exam-main">
-            <p class="quiz__meta" id="examTaskMeta"></p>
-            <div class="quiz__card">
-              <p class="quiz__caption" id="examTaskCaption"></p>
-              <div class="quiz__task" id="examTaskBody"></div>
-            </div>
-            <div class="options" id="examOptions"></div>
-            <div class="answer-input" id="examInputRow" hidden>
-              <label class="answer-input__label" for="examInput">Ответ (целое число):</label>
-              <input type="text" id="examInput" class="answer-input__field" inputmode="numeric"
-                     autocomplete="off" spellcheck="false" placeholder="Введите ответ">
-            </div>
-            <div class="quiz__row">
-              <button type="button" id="examPrev" class="btn btn--ghost">Назад</button>
-              <button type="button" id="examNext" class="btn btn--ghost">Вперёд</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="examResult" hidden></div>
-    </section>
-
-    <!-- ===== Режим: разбор (история попыток) ===== -->
-    <section class="view" id="viewHistory" hidden>
-      <div class="panel">
-        <h2 class="panel__title">История попыток</h2>
-        <p class="panel__text">Здесь сохраняются завершённые экзамены. Выберите попытку, чтобы увидеть
-          статистику по темам и разбор каждого задания.</p>
-      </div>
-      <div class="history-list" id="historyList"></div>
-      <div id="historyDetail"></div>
-    </section>
-
     <!-- ===== Режим: повторение (SRS) ===== -->
     <section class="view review" id="viewReview" hidden>
       <p class="quiz__meta" id="reviewMeta"></p>
@@ -259,8 +163,6 @@
           integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg"
           crossorigin="anonymous"></script>
   <script defer src="assets/js/data/cards.js"></script>
-  <script defer src="assets/js/data/tasks.js"></script>
-  <script defer src="assets/js/data/rikz.js"></script>
   <script defer src="assets/js/app.js"></script>
 </body>
 </html>
