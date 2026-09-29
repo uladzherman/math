@@ -1446,63 +1446,224 @@
 
   /* ============ Устный счёт ============ */
   var CALC_DURATION = 60;
-  var calc = { active: false, endsAt: 0, correct: 0, wrong: 0, current: null, timerId: null };
+  var calc = {
+    active: false, endsAt: 0, correct: 0, wrong: 0, current: null, timerId: null,
+    classes: { 5: true, 6: false, 7: false }
+  };
 
   function calcBestLoad() { return load("math-trainer-calc-v1", { best: 0 }).best; }
   function calcBestSave(v) { save("math-trainer-calc-v1", { best: v }); }
+  function calcPick(arr) { return arr[randInt(0, arr.length - 1)]; }
+  function calcGcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { var t = b; b = a % b; a = t; } return a || 1; }
+  function calcPlus(v) { return v === 0 ? "" : (v > 0 ? " + " + v : " - " + Math.abs(v)); }
+  function calcFlip(sign) { return sign === "<" ? ">" : (sign === ">" ? "<" : (sign === "≤" ? "≥" : "≤")); }
+  function decStr(x) { var v = Math.round(x * 100) / 100; return String(v).replace(".", ","); }
+  function fracTex(n, d) {
+    var g = calcGcd(n, d); n /= g; d /= g;
+    if (d < 0) { n = -n; d = -d; }
+    if (d === 1) return String(n);
+    return "$" + (n < 0 ? "-\\dfrac{" + Math.abs(n) + "}{" + d + "}" : "\\dfrac{" + n + "}{" + d + "}") + "$";
+  }
+  function mixedTex(k, n, d) {
+    if (n === 0) return String(k);
+    return "$" + k + "\\frac{" + n + "}{" + d + "}$";
+  }
+  function calcWrongs(correct, cands) {
+    var out = [];
+    cands.forEach(function (c) {
+      if (c !== correct && out.indexOf(c) === -1 && out.length < 3) out.push(c);
+    });
+    var guard = 0;
+    while (out.length < 3 && guard < 80) {
+      guard++;
+      var c2 = String(randInt(1, 40));
+      if (c2 !== correct && out.indexOf(c2) === -1) out.push(c2);
+    }
+    return out;
+  }
+
+  /* ----- 5 класс: натуральные числа, остаток, обыкновенные дроби ----- */
+  function g5() {
+    var t = randInt(1, 9), q, correct, wrong = [];
+    if (t === 1) {
+      var a = randInt(120, 980), b = randInt(120, 980);
+      q = "$" + a + " + " + b + "$"; correct = String(a + b);
+      wrong = calcWrongs(correct, [String(a + b + 10), String(a + b - 10), String(a + b + 100), String(a + b - 1)]);
+    } else if (t === 2) {
+      var a2 = randInt(320, 980), b2 = randInt(120, a2 - 100);
+      q = "$" + a2 + " - " + b2 + "$"; correct = String(a2 - b2);
+      wrong = calcWrongs(correct, [String(a2 - b2 + 10), String(a2 - b2 - 10), String(a2 + b2), String(a2 - b2 + 1)]);
+    } else if (t === 3) {
+      var a3 = randInt(12, 49), b3 = randInt(3, 9);
+      q = "$" + a3 + " \\cdot " + b3 + "$"; correct = String(a3 * b3);
+      wrong = calcWrongs(correct, [String(a3 * b3 + a3), String(a3 * b3 - b3), String(a3 + b3), String(a3 * b3 + 10)]);
+    } else if (t === 4) {
+      var b4 = randInt(3, 12), x4 = randInt(5, 30);
+      q = "$" + (b4 * x4) + " : " + b4 + "$"; correct = String(x4);
+      wrong = calcWrongs(correct, [String(x4 + 1), String(x4 - 1), String(x4 + 10), String(b4)]);
+    } else if (t === 5) {
+      var a5 = randInt(40, 300), b5 = randInt(3, 15), rem = a5 % b5;
+      q = "Остаток от деления $" + a5 + "$ на $" + b5 + "$"; correct = String(rem);
+      wrong = calcWrongs(correct, [String((rem + 1) % b5), String((rem + b5 - 1) % b5), String(Math.floor(a5 / b5)), String(b5 - rem)]);
+    } else if (t === 6) {
+      var d6 = randInt(2, 9), k6 = randInt(1, 8), r6 = randInt(1, d6 - 1), p6 = k6 * d6 + r6;
+      q = "Выделите целую часть: $\\dfrac{" + p6 + "}{" + d6 + "}$"; correct = mixedTex(k6, r6, d6);
+      wrong = calcWrongs(correct, [mixedTex(k6 + 1, r6, d6), mixedTex(k6, r6 === d6 - 1 ? r6 - 1 : r6 + 1, d6), "$\\dfrac{" + p6 + "}{" + d6 + "}$", mixedTex(k6, r6, d6 + 1)]);
+    } else if (t === 7) {
+      var k7 = randInt(1, 8), d7 = randInt(2, 9), r7 = randInt(1, d7 - 1);
+      q = "Запишите неправильной дробью: " + mixedTex(k7, r7, d7); correct = fracTex(k7 * d7 + r7, d7);
+      wrong = calcWrongs(correct, [fracTex(k7 + r7, d7), fracTex(k7 * d7, d7), fracTex(k7 * d7 + r7, k7 + d7), fracTex(k7 * d7 - r7, d7)]);
+    } else if (t === 8) {
+      var d8 = randInt(3, 9), r8 = randInt(1, d8 - 1), m8 = randInt(2, 12), N8 = d8 * m8;
+      q = "$\\dfrac{" + r8 + "}{" + d8 + "}$ от $" + N8 + "$"; correct = String(r8 * m8);
+      wrong = calcWrongs(correct, [String(m8), String(r8 * N8), String(r8 * m8 + N8), String(r8 * m8 - m8)]);
+    } else {
+      var p9 = randInt(1, 7), d9 = randInt(p9 + 1, 9), g9 = randInt(2, 6), n9 = p9 * g9, q9 = d9 * g9;
+      q = "Сократите дробь: $\\dfrac{" + n9 + "}{" + q9 + "}$"; correct = fracTex(p9, d9);
+      wrong = calcWrongs(correct, [fracTex(n9, q9), fracTex(p9 * 2, d9 * 2), fracTex(n9 - 1, q9), fracTex(p9, d9 + 1)]);
+    }
+    return { q: q, correct: correct, wrong: wrong };
+  }
+
+  /* ----- 6 класс: десятичные дроби, целые числа, пропорции, проценты ----- */
+  function g6() {
+    var t = randInt(1, 10), q, correct, wrong = [];
+    if (t === 1) {
+      var a = randInt(11, 99) / 10, b = randInt(11, 99) / 10;
+      q = "$" + decStr(a) + " + " + decStr(b) + "$"; correct = decStr(a + b);
+      wrong = calcWrongs(correct, [decStr(a + b + 0.1), decStr(a + b - 0.1), decStr(a + b + 1), decStr(a + b - 1)]);
+    } else if (t === 2) {
+      var a2 = randInt(30, 99) / 10, b2 = randInt(11, 29) / 10;
+      q = "$" + decStr(a2) + " - " + decStr(b2) + "$"; correct = decStr(a2 - b2);
+      wrong = calcWrongs(correct, [decStr(a2 - b2 + 0.1), decStr(a2 - b2 - 0.1), decStr(a2 + b2), decStr(a2 - b2 + 1)]);
+    } else if (t === 3) {
+      var at = randInt(11, 49), bt = randInt(11, 49);
+      q = "$" + decStr(at / 10) + " \\cdot " + decStr(bt / 10) + "$"; correct = decStr(at * bt / 100);
+      wrong = calcWrongs(correct, [decStr(at * bt / 10), decStr(at * bt), decStr(at * bt / 100 + 0.1), decStr(at * bt / 100 - 0.1)]);
+    } else if (t === 4) {
+      var bb = randInt(2, 9), ans4 = randInt(2, 9), at4 = bb * ans4;
+      q = "$" + decStr(at4 / 10) + " : " + decStr(bb / 10) + "$"; correct = String(ans4);
+      wrong = calcWrongs(correct, [String(ans4 + 1), String(ans4 - 1), decStr(at4 / 10), String(bb)]);
+    } else if (t === 5) {
+      var x5 = randInt(-12, -1), y5 = randInt(2, 15);
+      q = "$(" + x5 + ") + " + y5 + "$"; correct = String(x5 + y5);
+      wrong = calcWrongs(correct, [String(x5 - y5), String(-x5 + y5), String(x5 + y5 + 1), String(x5 + y5 - 1)]);
+    } else if (t === 6) {
+      var x6 = randInt(-9, 9), y6 = randInt(-9, 9);
+      q = "$" + x6 + " - (" + y6 + ")$"; correct = String(x6 - y6);
+      wrong = calcWrongs(correct, [String(x6 + y6), String(-x6 - y6), String(x6 - y6 + 1), String(x6 - y6 - 1)]);
+    } else if (t === 7) {
+      var x7 = randInt(-9, -2), y7 = randInt(2, 9);
+      q = "$" + x7 + " \\cdot " + y7 + "$"; correct = String(x7 * y7);
+      wrong = calcWrongs(correct, [String(-x7 * y7), String(x7 + y7), String(x7 * y7 + y7), String(x7 * y7 - y7)]);
+    } else if (t === 8) {
+      var y8 = (randInt(0, 1) ? 1 : -1) * randInt(2, 9), x8 = (randInt(0, 1) ? 1 : -1) * randInt(2, 9);
+      q = "$" + (y8 * x8) + " : " + y8 + "$"; correct = String(x8);
+      wrong = calcWrongs(correct, [String(-x8), String(x8 + 1), String(y8), String(x8 - 1)]);
+    } else if (t === 9) {
+      var pa = 4, pb = 6, pc = 8, px = 3, found = false;
+      for (var i = 0; i < 40 && !found; i++) {
+        var c9 = randInt(2, 9), b9 = randInt(2, 9), a9 = randInt(2, 9);
+        if ((b9 * a9) % c9 === 0) { var xx = b9 * a9 / c9; if (xx >= 1 && xx <= 20) { pa = a9; pb = b9; pc = c9; px = xx; found = true; } }
+      }
+      q = "$\\dfrac{x}{" + pa + "} = \\dfrac{" + pb + "}{" + pc + "}$"; correct = String(px);
+      wrong = calcWrongs(correct, [String(pb + pc - pa), String(pa * pc - pb), String(px + 1), String(Math.abs(pa - pb) || 1)]);
+    } else {
+      var pp = calcPick([10, 20, 25, 50, 75]), N10 = calcPick([40, 60, 80, 120, 160, 200]);
+      q = "$" + pp + "\\%$ от $" + N10 + "$"; correct = String(N10 * pp / 100);
+      wrong = calcWrongs(correct, [String(N10 - N10 * pp / 100), String(Math.round(N10 / pp) || 1), String(N10 * pp / 100 + 5), String(N10 * pp / 100 - 5)]);
+    }
+    return { q: q, correct: correct, wrong: wrong };
+  }
+
+  /* ----- 7 класс: линейные уравнения и неравенства ----- */
+  function g7() {
+    var t = randInt(1, 4), q, correct, wrong = [];
+    if (t === 1) {
+      var a = randInt(2, 9), x = randInt(-9, 9), b = randInt(-15, 15), c = a * x + b;
+      q = "$" + a + "x" + calcPlus(b) + " = " + c + "$"; correct = String(x);
+      wrong = calcWrongs(correct, [String(-x), String(x + 1), String(x - 1), String(c - b)]);
+    } else if (t === 2) {
+      var a2 = randInt(2, 9), x2 = randInt(-9, 9), b2 = randInt(-9, 9), c2 = a2 * (x2 + b2);
+      q = "$" + a2 + "(x" + calcPlus(b2) + ") = " + c2 + "$"; correct = String(x2);
+      wrong = calcWrongs(correct, [String(x2 + b2), String(-x2), String(x2 + 1), String(c2 - b2)]);
+    } else if (t === 3) {
+      var a3 = randInt(2, 9), c3 = randInt(2, 9);
+      if (c3 === a3) c3 = a3 + 1;
+      var x3 = randInt(-6, 6), b3 = randInt(-9, 9), d3 = (a3 - c3) * x3 + b3;
+      q = "$" + a3 + "x" + calcPlus(b3) + " = " + c3 + "x" + calcPlus(d3) + "$"; correct = String(x3);
+      wrong = calcWrongs(correct, [String(-x3), String(x3 + 1), String(x3 - 1), String(b3 - d3)]);
+    } else {
+      var a4 = calcPick([-9, -8, -7, -6, -5, -4, -3, -2, -1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      var k = randInt(-9, 9), b4 = randInt(-12, 12), sign = calcPick(["<", ">", "≤", "≥"]), c4 = a4 * k + b4;
+      q = "$" + a4 + "x" + calcPlus(b4) + " " + sign + " " + c4 + "$";
+      var solSign = a4 > 0 ? sign : calcFlip(sign);
+      correct = "$x " + solSign + " " + k + "$";
+      wrong = calcWrongs(correct, ["$x " + calcFlip(solSign) + " " + k + "$", "$x " + solSign + " " + (-k) + "$", "$x " + solSign + " " + (k + 1) + "$", "$x " + solSign + " " + (k - 1) + "$"]);
+    }
+    return { q: q, correct: correct, wrong: wrong };
+  }
 
   function makeCalcTask() {
-    var t = randInt(1, 8), q, ans;
-    if (t === 1) { var a = randInt(20, 99), b = randInt(20, 99); q = "$" + a + " + " + b + "$"; ans = a + b; }
-    else if (t === 2) { var a2 = randInt(40, 99), b2 = randInt(11, a2 - 10); q = "$" + a2 + " - " + b2 + "$"; ans = a2 - b2; }
-    else if (t === 3) { var a3 = randInt(11, 25), b3 = randInt(3, 9); q = "$" + a3 + "\\cdot " + b3 + "$"; ans = a3 * b3; }
-    else if (t === 4) { var b4 = randInt(3, 12), ans4 = randInt(3, 20); q = "$" + (b4 * ans4) + " : " + b4 + "$"; ans = ans4; }
-    else if (t === 5) { var b5 = randInt(2, 5), e5 = randInt(2, 4); q = "$" + b5 + "^{" + e5 + "}$"; ans = Math.pow(b5, e5); }
-    else if (t === 6) { var n6 = randInt(4, 20); q = "$\\sqrt{" + (n6 * n6) + "}$"; ans = n6; }
-    else if (t === 7) { var p7 = [10, 20, 25, 50][randInt(0, 3)]; var base7 = randInt(2, 12) * 20; q = "$" + p7 + "\\%$ от $" + base7 + "$"; ans = base7 * p7 / 100; }
-    else { var d8 = randInt(2, 6); var base8 = d8 * randInt(3, 30); q = "$\\dfrac{1}{" + d8 + "}$ от $" + base8 + "$"; ans = base8 / d8; }
-    return { q: q, ans: ans };
-  }
-  function calcOptions(ans) {
-    var opts = [ans], guard = 0;
-    while (opts.length < 4 && guard < 80) {
-      guard++;
-      var d = ans + randInt(-9, 9);
-      if (d === ans || d < 0 || opts.indexOf(d) !== -1) continue;
-      opts.push(d);
-    }
-    return shuffle(opts);
+    var selected = [];
+    [5, 6, 7].forEach(function (c) { if (calc.classes[c]) selected.push(c); });
+    if (!selected.length) selected = [5];
+    var cls = calcPick(selected);
+    return cls === 5 ? g5() : (cls === 6 ? g6() : g7());
   }
   function calcMeta() { byId("calcMeta").textContent = "Верно " + calc.correct + " · Ошибок " + calc.wrong; }
   function calcNewTask() {
     var task = makeCalcTask();
-    calc.current = { task: task, answered: false };
+    calc.current = { answered: false };
     appendRich(byId("calcTask"), task.q);
+    var opts = [{ ok: true, text: task.correct }];
+    task.wrong.slice(0, 3).forEach(function (w) { opts.push({ ok: false, text: w }); });
+    shuffle(opts);
     var box = byId("calcOptions");
     box.innerHTML = "";
-    calcOptions(task.ans).forEach(function (v) {
+    opts.forEach(function (o) {
       var b = document.createElement("button");
       b.type = "button";
-      b.className = "option";
-      b.textContent = String(v);
-      if (v === task.ans) b.dataset.correct = "1";
-      b.addEventListener("click", function () { calcAnswer(v, b); });
+      b.className = "option option--tile";
+      if (o.ok) b.dataset.correct = "1";
+      appendRich(b, o.text);
+      b.addEventListener("click", function () { calcAnswer(b, o.ok); });
       box.appendChild(b);
     });
     resetFeedback("calcFeedback");
   }
-  function calcAnswer(v, btn) {
+  function calcAnswer(btn, ok) {
     if (!calc.active || calc.current.answered) return;
     calc.current.answered = true;
-    var ok = v === calc.current.task.ans;
     if (ok) calc.correct++; else calc.wrong++;
-    var fb = byId("calcFeedback");
-    fb.textContent = ok ? "Верно!" : ("Неверно: " + calc.current.task.ans);
-    fb.className = "feedback " + (ok ? "feedback--ok" : "feedback--bad");
+    answerOption(byId("calcOptions"), btn, ok, byId("calcFeedback"));
     calcMeta();
-    if (calc.active) window.setTimeout(function () { if (calc.active) calcNewTask(); }, 320);
+    if (calc.active) window.setTimeout(function () { if (calc.active) calcNewTask(); }, 360);
+  }
+  function buildCalcClasses() {
+    var box = byId("calcClasses");
+    if (!box) return;
+    box.innerHTML = "";
+    [5, 6, 7].forEach(function (c) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip" + (calc.classes[c] ? " is-active" : "");
+      b.textContent = c + " класс";
+      b.dataset.cls = String(c);
+      b.setAttribute("aria-pressed", String(!!calc.classes[c]));
+      b.addEventListener("click", function () {
+        var count = [5, 6, 7].filter(function (x) { return calc.classes[x]; }).length;
+        if (calc.classes[c] && count === 1) return;
+        calc.classes[c] = !calc.classes[c];
+        b.classList.toggle("is-active", calc.classes[c]);
+        b.setAttribute("aria-pressed", String(!!calc.classes[c]));
+      });
+      box.appendChild(b);
+    });
   }
   function calcStart() {
+    if (!(calc.classes[5] || calc.classes[6] || calc.classes[7])) calc.classes[5] = true;
+    buildCalcClasses();
     byId("calcStart").hidden = true;
     byId("calcResult").hidden = true;
     byId("calcRun").hidden = false;
@@ -1577,6 +1738,7 @@
     else if (mode === "formulas") { if (!state.formula.order.length) formulaNewOrder(); formulaRender(); }
     else if (mode === "names") { if (!state.names.order.length) namesNewOrder(); namesRender(); }
     else if (mode === "calc") {
+      buildCalcClasses();
       if (!calc.active) {
         byId("calcStart").hidden = false;
         byId("calcRun").hidden = true;
@@ -1594,6 +1756,7 @@
   function init() {
     buildChips();
     buildGraphControls();
+    buildCalcClasses();
     if (byId("graphUnit")) byId("graphUnit").value = graphState.unit;
     renderBrowse();
     updateProgress();

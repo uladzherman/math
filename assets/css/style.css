@@ -409,3 +409,12 @@ html, body { overflow-anchor: none; }
 @media (max-width: 900px) {
   .graph-layout { grid-template-columns: 1fr; }
 }
+
+/* ===== Плитки ответов (устный счёт) ===== */
+.options--tiles { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0.6rem; }
+.options--tiles .option,
+.option--tile {
+  justify-content: center; text-align: center; min-height: 64px;
+  font-size: 1.05rem; font-variant-numeric: tabular-nums;
+}
+.option--tile .katex { font-size: 1.1em; }
