@@ -255,7 +255,15 @@ main { padding: 1.5rem 0 4rem; }
 }
 .coef { display: grid; gap: 0.15rem; }
 .coef__label { font-size: 0.82rem; color: var(--muted); }
-.coef input[type="range"] { width: 100%; }
+.coef__row { display: flex; align-items: center; gap: 0.5rem; }
+.coef__row input[type="range"] { flex: 1; min-width: 0; }
+.coef__num {
+  flex: none; width: 4.5rem;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  border-radius: 8px; padding: 0.3rem 0.45rem; font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+.coef__num:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
 .graph-formula {
   font-size: 1.1rem; text-align: center; padding: 0.5rem;
   background: var(--bg); border-radius: 10px; min-height: 2.2rem; margin: 0; overflow-x: auto;

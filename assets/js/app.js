@@ -131,7 +131,7 @@
   function renderMathOptions(box, choices, onPick) {
     renderOptions(box, choices, function (btn, c) {
       var span = document.createElement("span");
-      appendRich(span, c.text);
+      appendRich(span, wrapMath(c.text));
       btn.appendChild(span);
     }, onPick);
     window.requestAnimationFrame(function () { fitOptions(box); });
@@ -679,25 +679,52 @@
       var label = document.createElement("label");
       label.className = "coef__label";
       label.textContent = c.k + " = " + fmtNum(vals[c.k]);
-      var input = document.createElement("input");
-      input.type = "range";
-      input.min = c.min; input.max = c.max; input.step = c.step;
-      input.value = vals[c.k];
-      input.addEventListener("input", function () {
-        graphState.values[g.id + ":" + c.k] = parseFloat(input.value);
-        label.textContent = c.k + " = " + fmtNum(parseFloat(input.value));
+
+      var row = document.createElement("div");
+      row.className = "coef__row";
+
+      var slider = document.createElement("input");
+      slider.type = "range";
+      slider.min = c.min; slider.max = c.max; slider.step = c.step;
+      slider.value = vals[c.k];
+
+      var num = document.createElement("input");
+      num.type = "number";
+      num.className = "coef__num";
+      num.step = c.step;
+      num.value = vals[c.k];
+      num.setAttribute("aria-label", "Коэффициент " + c.k);
+
+      function apply(raw, clamp) {
+        var v = parseFloat(String(raw).replace(",", "."));
+        if (isNaN(v)) return;
+        if (clamp) v = Math.min(c.max, Math.max(c.min, v));
+        graphState.values[g.id + ":" + c.k] = v;
+        slider.value = v;
+        num.value = v;
+        label.textContent = c.k + " = " + fmtNum(v);
         drawGraph();
-      });
-      wrap.appendChild(label); wrap.appendChild(input);
+      }
+      slider.addEventListener("input", function () { apply(slider.value, false); });
+      num.addEventListener("input", function () { apply(num.value, false); });
+      num.addEventListener("change", function () { apply(num.value, true); });
+      num.addEventListener("blur", function () { apply(num.value, true); });
+
+      row.appendChild(slider); row.appendChild(num);
+      wrap.appendChild(label); wrap.appendChild(row);
       box.appendChild(wrap);
     });
   }
   function drawGraph() {
     var canvas = byId("graphCanvas");
     var wrapEl = canvas.parentNode;
-    var cssW = wrapEl.clientWidth - 12;
-    if (cssW <= 0) cssW = 640;
-    var cssH = Math.round(cssW * 0.75);
+    var cs = getComputedStyle(wrapEl);
+    var padL = parseFloat(cs.paddingLeft) || 0;
+    var padR = parseFloat(cs.paddingRight) || 0;
+    var cssW = Math.floor(wrapEl.clientWidth - padL - padR);
+    if (cssW <= 0) cssW = Math.min(720, Math.max(280, (window.innerWidth || 640) - 60));
+    var cssH = Math.round(cssW * 0.72);
+    if (cssH < 240) cssH = 240;
     var dpr = window.devicePixelRatio || 1;
     canvas.width = Math.round(cssW * dpr);
     canvas.height = Math.round(cssH * dpr);
@@ -854,6 +881,15 @@
       buildGraphCoefs();
       drawGraph();
     });
+
+    if (typeof ResizeObserver !== "undefined") {
+      var graphWrap = byId("graphCanvas").parentNode;
+      if (graphWrap) {
+        new ResizeObserver(function () {
+          if (state.mode === "graph") drawGraph();
+        }).observe(graphWrap);
+      }
+    }
 
     var resizeTimer = null;
     window.addEventListener("resize", function () {
