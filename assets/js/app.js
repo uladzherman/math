@@ -948,6 +948,34 @@
       default: return null;
     }
   }
+  function trigZerosText(id, v) {
+    var A = v.A, k = v.k, a = v.a, b = v.b;
+    if (A === 0) return b === 0 ? "вся числовая прямая" : "нет корней";
+    var t = -b / A;
+    if (Math.abs(t) > 1) return "нет корней (|−b/A| > 1)";
+    var deg = graphState.unit === "deg";
+    var P = deg ? "180°" : "π";
+    var P2 = deg ? "360°" : "2π";
+    var unit = deg ? "°" : "";
+    function cstr(c) { var cv = deg ? c * 180 / Math.PI : c; return fmtCoord(cv) + unit; }
+    var base = (Math.abs(a) < 1e-9) ? "" : (a > 0 ? " + " + fmtCoord(a) : " − " + fmtCoord(Math.abs(a)));
+    var denom = (Math.abs(Math.abs(k) - 1) < 1e-9) ? "" : "/" + fmtNum(Math.abs(k));
+    if (id === "sine") {
+      var c = Math.asin(t);
+      if (Math.abs(c) < 1e-9) return "x =" + (base || " ") + " " + P + "n" + denom + ",  n ∈ ℤ";
+      return "x =" + (base || " ") + " ((−1)ⁿ·" + cstr(c) + " + " + P + "n)" + denom + ",  n ∈ ℤ";
+    }
+    if (id === "cosine") {
+      var c2 = Math.acos(t);
+      return "x =" + (base || " ") + " (±" + cstr(c2) + " + " + P2 + "n)" + denom + ",  n ∈ ℤ";
+    }
+    if (id === "tangent") {
+      var c3 = Math.atan(t);
+      if (Math.abs(c3) < 1e-9) return "x =" + (base || " ") + " " + P + "n" + denom + ",  n ∈ ℤ";
+      return "x =" + (base || " ") + " (" + cstr(c3) + " + " + P + "n)" + denom + ",  n ∈ ℤ";
+    }
+    return null;
+  }
   function renderGraphProps(g, v) {
     var box = byId("graphProps");
     if (!box) return;
@@ -956,9 +984,13 @@
     rows.push(["Область определения", domainText(g.id, v)]);
     rows.push(["Область значений", rangeText(g.id, v)]);
     rows.push(["Чётность", graphParity(g, v)]);
-    var rx = graphState.rangeX;
-    var zs = findZeros(g, v, graphState.center.x - rx, graphState.center.x + rx);
-    rows.push(["Нули функции", zs.length ? zs.slice(0, 8).map(fmtCoord).join(";  ") + (zs.length > 8 ? "  …" : "") : "нет на видимом промежутке"]);
+    if (isTrig(g.id)) {
+      rows.push(["Нули функции (общее решение)", trigZerosText(g.id, v) || "нет корней"]);
+    } else {
+      var rx = graphState.rangeX;
+      var zs = findZeros(g, v, graphState.center.x - rx, graphState.center.x + rx);
+      rows.push(["Нули функции", zs.length ? zs.slice(0, 8).map(fmtCoord).join(";  ") + (zs.length > 8 ? "  …" : "") : "нет на видимом промежутке"]);
+    }
     var y0 = graphValue(g, v, 0);
     rows.push(["Пересечение с осью Oy", isFinite(y0) ? "(0; " + fmtCoord(y0) + ")" : "нет"]);
     var ext = extremumText(g.id, v); if (ext) rows.push(["Экстремум", ext]);
