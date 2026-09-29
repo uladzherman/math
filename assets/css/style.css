@@ -187,25 +187,26 @@ main { padding: 1.5rem 0 4rem; }
 .empty { color: var(--muted); text-align: center; padding: 2rem 0; }
 
 /* ===== Соответствие ===== */
-.match__hint { color: var(--muted); font-size: 0.9rem; margin: 0 0 0.9rem; }
+.match__hint { color: var(--muted); font-size: 0.9rem; margin: 0 0 1rem; }
 .match__wrap { position: relative; margin-bottom: 1rem; }
 .match__lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; overflow: visible; }
-.match__line { fill: none; stroke: var(--accent); stroke-width: 2; }
-.match__arrow { fill: var(--accent); }
-.match__board { position: relative; z-index: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
-.match__col { display: grid; gap: 0.5rem; align-content: start; }
+.match__line { fill: none; stroke: var(--ok); stroke-width: 2.5; stroke-linecap: round; }
+.match__arrow { fill: var(--ok); }
+.match__board { position: relative; z-index: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 3.5rem; }
+.match__col { display: grid; gap: 0.5rem; align-content: start; min-width: 0; }
 .match-item {
   border: 1px solid var(--border); background: var(--bg-soft); color: var(--text);
-  border-radius: 12px; padding: 0.7rem 0.85rem; min-height: 54px;
-  display: flex; align-items: center; text-align: left; font-size: 0.95rem; cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  border-radius: 12px; padding: 0.65rem 0.85rem; min-height: 56px;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  font: inherit; font-size: 0.95rem; cursor: pointer; overflow: hidden;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 .match-item:hover:not(:disabled) { border-color: var(--accent); }
-.match-item.is-selected { border-color: var(--accent); background: var(--accent-soft); }
-.match-item.is-matched { border-color: var(--ok); background: var(--ok-soft); }
-.match-item.is-wrong { border-color: var(--bad); background: var(--bad-soft); }
+.match-item.is-selected { border-color: var(--accent); background: var(--accent-soft); font-weight: 650; }
+.match-item.is-matched { border-color: var(--ok); background: var(--ok-soft); color: var(--ok); font-weight: 650; cursor: default; }
+.match-item.is-wrong { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); }
 .match-item:disabled { cursor: default; }
-.match-item .katex { font-size: 1em; }
+.match-item .katex { font-size: 1.02em; }
 
 /* ===== Quiz (Формулы / Названия) ===== */
 .quiz__meta { color: var(--muted); font-size: 0.85rem; margin: 0 0 0.75rem; font-variant-numeric: tabular-nums; }
@@ -301,7 +302,6 @@ main { padding: 1.5rem 0 4rem; }
 @media (max-width: 620px) {
   .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
   .card { height: 200px; }
-  .match__board { grid-template-columns: 1fr; }
   .controls { flex-direction: column; align-items: stretch; }
   .buttons { justify-content: flex-start; }
 }
@@ -394,8 +394,13 @@ html, body { overflow-anchor: none; }
 @media (max-width: 620px) {
   .graph-canvas-wrap { padding: 0.4rem; }
   .quiz__card { padding: 1rem 1.05rem; }
-  .match-item { font-size: 0.9rem; padding: 0.6rem 0.7rem; }
-  .match-item .katex { font-size: 0.92em; }
+}
+
+@media (max-width: 480px) {
+  .match__board { gap: 1.75rem; }
+  .match-item { font-size: 0.82rem; padding: 0.5rem 0.55rem; min-height: 50px; }
+  .match-item .katex { font-size: 0.9em; }
+  .match__hint { font-size: 0.85rem; }
 }
 
 /* ===== Графики: вписывание в экран ===== */
