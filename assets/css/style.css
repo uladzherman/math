@@ -188,7 +188,11 @@ main { padding: 1.5rem 0 4rem; }
 
 /* ===== Соответствие ===== */
 .match__hint { color: var(--muted); font-size: 0.9rem; margin: 0 0 0.9rem; }
-.match__board { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1rem; }
+.match__wrap { position: relative; margin-bottom: 1rem; }
+.match__lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; overflow: visible; }
+.match__line { fill: none; stroke: var(--accent); stroke-width: 2; }
+.match__arrow { fill: var(--accent); }
+.match__board { position: relative; z-index: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
 .match__col { display: grid; gap: 0.5rem; align-content: start; }
 .match-item {
   border: 1px solid var(--border); background: var(--bg-soft); color: var(--text);
@@ -367,4 +371,22 @@ main { padding: 1.5rem 0 4rem; }
   .options--inline { grid-template-columns: 1fr 1fr; }
   .btn { padding: 0.5rem 0.85rem; font-size: 0.88rem; }
   .tab { padding: 0.4rem 0.65rem; font-size: 0.8rem; }
+}
+
+/* ===== Компактная шапка при прокрутке ===== */
+.site-header { transition: padding 0.2s ease; }
+.site-header h1 { transition: font-size 0.2s ease; }
+.site-header .subtitle { transition: opacity 0.2s ease; }
+.site-header.is-compact { padding: 0.55rem 0 0.45rem; }
+.site-header.is-compact h1 { font-size: 1.05rem; }
+.site-header.is-compact .subtitle { display: none; }
+.site-header.is-compact .tabs { padding-bottom: 0.45rem; }
+.site-header.is-compact .progress { display: none; }
+.site-header.is-compact .social-icon { width: 36px; height: 36px; }
+
+@media (max-width: 620px) {
+  .graph-canvas-wrap { padding: 0.4rem; }
+  .quiz__card { padding: 1rem 1.05rem; }
+  .match-item { font-size: 0.9rem; padding: 0.6rem 0.7rem; }
+  .match-item .katex { font-size: 0.92em; }
 }

@@ -76,9 +76,12 @@
     <section class="view" id="viewMatch" hidden>
       <p class="quiz__meta" id="matchMeta">Собрано пар 0 · Ошибок 0</p>
       <p class="match__hint" id="matchHint">Соедините название формулы слева с её записью справа.</p>
-      <div class="match__board" id="matchBoard">
-        <div class="match__col" id="matchNames"></div>
-        <div class="match__col" id="matchFormulas"></div>
+      <div class="match__wrap">
+        <svg class="match__lines" id="matchLines" aria-hidden="true"></svg>
+        <div class="match__board" id="matchBoard">
+          <div class="match__col" id="matchNames"></div>
+          <div class="match__col" id="matchFormulas"></div>
+        </div>
       </div>
       <div class="quiz__row">
         <button type="button" id="matchNext" class="btn" disabled>Следующий раунд</button>

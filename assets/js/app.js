@@ -9,6 +9,7 @@
   var KATEX_DISPLAY = { throwOnError: false, displayMode: true, strict: "ignore", trust: false };
   var KATEX_INLINE = { throwOnError: false, displayMode: false, strict: "ignore", trust: false };
   var DAY = 86400000;
+  var SVG_NS = "http://www.w3.org/2000/svg";
 
   var SECTION_TITLE = {};
   window.SECTIONS.forEach(function (s) { SECTION_TITLE[s.id] = s.title; });
@@ -338,6 +339,7 @@
       formulasBox.appendChild(btn);
     });
     matchMeta();
+    window.requestAnimationFrame(drawMatchLines);
   }
   function matchBtn(containerId, id) {
     var found = null;
@@ -376,6 +378,7 @@
         byId("matchFeedback").className = "feedback feedback--ok";
       }
       matchMeta();
+      window.requestAnimationFrame(drawMatchLines);
     } else {
       state.stats.matchBad++;
       save(LS.stats, state.stats);
@@ -393,6 +396,46 @@
     var s = state.stats;
     byId("matchMeta").textContent = "Собрано пар " + s.matchOk + " · Ошибок " + s.matchBad;
     byId("matchReset").disabled = (s.matchOk + s.matchBad) === 0;
+  }
+  function drawMatchLines() {
+    var svg = byId("matchLines");
+    var wrap = svg && svg.parentNode;
+    if (!svg || !wrap) return;
+    var wrect = wrap.getBoundingClientRect();
+    if (!wrect.width || !wrect.height) { svg.innerHTML = ""; return; }
+    svg.setAttribute("viewBox", "0 0 " + wrect.width + " " + wrect.height);
+    svg.innerHTML = "";
+
+    var defs = document.createElementNS(SVG_NS, "defs");
+    var marker = document.createElementNS(SVG_NS, "marker");
+    marker.setAttribute("id", "matchArrow");
+    marker.setAttribute("viewBox", "0 0 10 10");
+    marker.setAttribute("refX", "8");
+    marker.setAttribute("refY", "5");
+    marker.setAttribute("markerWidth", "7");
+    marker.setAttribute("markerHeight", "7");
+    marker.setAttribute("orient", "auto-start-reverse");
+    var tip = document.createElementNS(SVG_NS, "path");
+    tip.setAttribute("d", "M 0 0 L 10 5 L 0 10 z");
+    tip.setAttribute("class", "match__arrow");
+    marker.appendChild(tip);
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+
+    Object.keys(state.match.matched).forEach(function (id) {
+      var n = matchBtn("matchNames", id), f = matchBtn("matchFormulas", id);
+      if (!n || !f) return;
+      var nr = n.getBoundingClientRect(), fr = f.getBoundingClientRect();
+      var x1 = nr.right - wrect.left, y1 = nr.top + nr.height / 2 - wrect.top;
+      var x2 = fr.left - wrect.left, y2 = fr.top + fr.height / 2 - wrect.top;
+      var mid = (x1 + x2) / 2;
+      var path = document.createElementNS(SVG_NS, "path");
+      path.setAttribute("d", "M " + x1 + " " + y1 +
+        " C " + mid + " " + y1 + ", " + mid + " " + y2 + ", " + x2 + " " + y2);
+      path.setAttribute("class", "match__line");
+      path.setAttribute("marker-end", "url(#matchArrow)");
+      svg.appendChild(path);
+    });
   }
 
   /* ============ Режим «Формулы» (название → формула) ============ */
@@ -1029,7 +1072,8 @@
     var cssW = Math.floor(wrapEl.clientWidth - padL - padR);
     if (cssW <= 0) cssW = Math.min(720, Math.max(280, (window.innerWidth || 640) - 60));
     var cssH = Math.round(cssW * (view.aspect || 0.72));
-    if (cssH < 200) cssH = 200;
+    var minH = (window.innerWidth <= 620) ? 250 : 200;
+    if (cssH < minH) cssH = minH;
     var dpr = window.devicePixelRatio || 1;
     canvas.width = Math.round(cssW * dpr);
     canvas.height = Math.round(cssH * dpr);
@@ -1151,6 +1195,7 @@
       absY: graphState.absY,
       trig: isTrig(g.id),
       unit: graphState.unit,
+      aspect: (window.innerWidth <= 620 ? 0.95 : 0.72),
       markerX: graphState.cursorX
     });
     graphState.wpp = (2 * graphState.rangeX) / (W || 640);
@@ -1341,7 +1386,8 @@
     window.requestAnimationFrame(function () {
       paintGraph(canvas, read.current.g, read.current.vals, {
         centerX: 0, centerY: 0, rangeX: read.current.rangeX,
-        absX: false, absY: false, trig: isTrig(id), unit: graphState.unit, aspect: 0.6
+        absX: false, absY: false, trig: isTrig(id), unit: graphState.unit,
+        aspect: (window.innerWidth <= 620 ? 0.82 : 0.6)
       });
     });
   }
@@ -1626,6 +1672,7 @@
         fitAllWithin(document);
         if (state.mode === "formulas") fitOptions(byId("formulaOptions"));
         if (state.mode === "names") fitOptions(byId("namesOptions"));
+        if (state.mode === "match") drawMatchLines();
         if (state.mode === "graph") drawGraph();
       }, 150);
     });
@@ -1635,6 +1682,13 @@
         if (state.mode === "graph") drawGraph();
       });
     }
+
+    var headerEl = document.querySelector(".site-header");
+    function onScroll() {
+      if (headerEl) headerEl.classList.toggle("is-compact", (window.scrollY || 0) > 30);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
   }
 
   init();
