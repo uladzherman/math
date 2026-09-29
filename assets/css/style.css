@@ -378,7 +378,7 @@ html, body { overflow-anchor: none; }
 .site-header { transition: padding 0.28s ease; }
 .site-header h1 { transition: font-size 0.28s ease; }
 .site-header .subtitle {
-  overflow: hidden; max-height: 3.2rem;
+  overflow: hidden; max-height: 6rem;
   transition: max-height 0.28s ease, margin 0.28s ease, opacity 0.28s ease;
 }
 .site-header .tabs { transition: padding-bottom 0.28s ease; }
